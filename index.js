@@ -23,46 +23,31 @@ fetch(
     if (PiHoleResult.body != null) {
       spinner.succeed(`Pi-Hole Auth Valid!`);
       let successfulLaMetricConnections = 0;
-      let LaMetricTest = (indexNumber) => {
+      let laMetricTest = (indexNumber) => {
         if (config.LaMetric[indexNumber] != null) {
           spinner = ora(
             `Testing Connection to LaMetric @ ${config.LaMetric[indexNumber].IP}...`
           ).start();
-          let headers = new Headers();
-          headers.set(
-            "Authorization",
+          fetchWithAuth(
+            `http://${config.LaMetric[indexNumber].IP}:8080/api/v2/device/apps/com.lametric.58091f88c1c019c8266ccb2ea82e311d`,
+
             `Basic ${Buffer.from(
               `dev:${config.LaMetric[indexNumber].AuthKey}`
             ).toString("base64")}`
-          );
-          fetch(
-            `http://${config.LaMetric[indexNumber].IP}:8080/api/v2/device/apps/com.lametric.58091f88c1c019c8266ccb2ea82e311d`,
-            {
-              method: "GET",
-              headers: headers,
-            }
           )
             .then((LaMetricDeviceInfo) => {
               successfulLaMetricConnections++;
-              let headers2 = new Headers();
-              headers2.set(
-                "Authorization",
+              fetchWithAuth(
+                `http://${config.LaMetric[indexNumber].IP}:8080/api/v2/device`,
                 `Basic ${Buffer.from(
                   `dev:${config.LaMetric[indexNumber].AuthKey}`
                 ).toString("base64")}`
-              );
-              fetch(
-                `http://${config.LaMetric[indexNumber].IP}:8080/api/v2/device`,
-                {
-                  method: "GET",
-                  headers: headers2,
-                }
               ).then((LaMetricDeviceInfo2) => {
                 spinner.succeed(
                   `Connected to "${LaMetricDeviceInfo2.body.name}" @ ${config.LaMetric[indexNumber].IP} running OS v${LaMetricDeviceInfo2.body.os_version} & Pi-Hole Status v${LaMetricDeviceInfo.body.version}! (${LaMetricDeviceInfo2.body.serial_number})`
                 );
                 availableLaMetrics.push(config.LaMetric[indexNumber]);
-                LaMetricTest(indexNumber + 1);
+                laMetricTest(indexNumber + 1);
               });
             })
             .catch((err) => {
@@ -88,7 +73,7 @@ fetch(
                   `Connection to LaMetric @ ${config.LaMetric[indexNumber].IP} Failed. LaMetric does not seem to linked to this IP.`
                 );
               }
-              LaMetricTest(indexNumber + 1);
+              laMetricTest(indexNumber + 1);
             });
         } else {
           if (successfulLaMetricConnections > 0) {
@@ -104,10 +89,9 @@ fetch(
                   spinner.warn(`New update available! (${jsonData.version})`);
                 }
                 let updateLaMetric = () => {
-                  snek
-                    .get(
-                      `http://${config.PiHole.IP}/admin/api.php?summary&auth=${config.PiHole.AuthKey}`
-                    )
+                  fetch(
+                    `http://${config.PiHole.IP}/admin/api.php?summary&auth=${config.PiHole.AuthKey}`
+                  )
                     .then((PiHoleSummaryData) => {
                       fetch(
                         `http://${config.PiHole.IP}/admin/api.php?topItems&auth=${config.PiHole.AuthKey}`
@@ -123,37 +107,20 @@ fetch(
                                 let updateSpinner = ora(
                                   `Connecting to LaMetric @ ${LaMetric.IP}...`
                                 ).start();
-                                let headers3 = new Headers();
-                                headers3.set(
-                                  "Authorization",
+                                fetchWithAuth(
+                                  `http://${LaMetric.IP}:8080/api/v2/device/apps/com.lametric.58091f88c1c019c8266ccb2ea82e311d`,
                                   `Basic ${Buffer.from(
                                     `dev:${LaMetric.AuthKey}`
                                   ).toString("base64")}`
-                                );
-                                fetch(
-                                  `http://${LaMetric.IP}:8080/api/v2/device/apps/com.lametric.58091f88c1c019c8266ccb2ea82e311d`,
-                                  {
-                                    method: "GET",
-                                    headers: headers3,
-                                  }
                                 )
                                   .then((LaMetricDeviceInfo) => {
-                                    let headers4 = new Headers();
-                                    headers4.set(
-                                      "Authorization",
-                                      `Basic ${Buffer.from(
-                                        `dev:${LaMetric.AuthKey}`
-                                      ).toString("base64")}`
-                                    );
-                                    fetch(
+                                    fetchWithAuth(
                                       `http://${LaMetric.IP}:8080/api/v2/device`,
-                                      {
-                                        method: "GET",
-                                        headers: headers4,
-                                      }
+                                        `Basic ${Buffer.from(
+                                            `dev:${LaMetric.AuthKey}`
+                                        ).toString("base64")}`
                                     ).then((LaMetricDeviceInfo2) => {
-                                      updateSpinner.text = `Sending update for "${LaMetricDeviceInfo2.body.name}" @ ${LaMetric.IP} to the server...`;
-                                      let topQueryArray = Object.values(
+                                      updateSpinner.text = `Sending update for "${LaMetricDeviceInfo2.body.name}" @ ${LaMetric.IP} to the server...`;let topQueryArray = Object.values(
                                         PiHoleTopItemsData.top_queries
                                       );
                                       let topBlockedQueryArray = Object.values(
@@ -268,7 +235,7 @@ fetch(
           }
         }
       };
-      LaMetricTest(0);
+      laMetricTest(0);
     } else {
       spinner.fail(
         "Pi-Hole Auth Invalid! Make sure the supplied key is correct."
@@ -285,3 +252,10 @@ fetch(
     );
     process.exit();
   });
+
+function fetchWithAuth(url, auth) {
+  return fetch(url, {
+    method: "GET",
+    headers: { "Authorization": auth },
+  });
+}
