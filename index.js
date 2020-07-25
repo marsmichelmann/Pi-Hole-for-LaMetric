@@ -113,11 +113,12 @@ fetch(
                                   .then((LaMetricDeviceInfo) => {
                                     fetchWithAuth(
                                       `http://${LaMetric.IP}:8080/api/v2/device`,
-                                        `Basic ${Buffer.from(
-                                            `dev:${LaMetric.AuthKey}`
-                                        ).toString("base64")}`
+                                      `Basic ${Buffer.from(
+                                        `dev:${LaMetric.AuthKey}`
+                                      ).toString("base64")}`
                                     ).then((LaMetricDeviceInfo2) => {
-                                      updateSpinner.text = `Sending update for "${LaMetricDeviceInfo2.body.name}" @ ${LaMetric.IP} to the server...`;let topQueryArray = Object.values(
+                                      updateSpinner.text = `Sending update for "${LaMetricDeviceInfo2.body.name}" @ ${LaMetric.IP} to the server...`;
+                                      let topQueryArray = Object.values(
                                         PiHoleTopItemsData.top_queries
                                       );
                                       let topBlockedQueryArray = Object.values(
@@ -253,6 +254,6 @@ fetch(
 function fetchWithAuth(url, auth) {
   return fetch(url, {
     method: "GET",
-    headers: { "Authorization": auth },
+    headers: { Authorization: auth },
   });
 }
