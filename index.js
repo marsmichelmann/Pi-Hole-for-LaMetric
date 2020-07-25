@@ -1,34 +1,28 @@
 const config = require(`./config.json`);
 const fetch = require("node-fetch");
 const ora = require("ora");
-console.log(`Starting Pi-Hole for LaMetric ${config.version}...`);
 
-let availableLaMetrics = [];
+var successfulLaMetricConnections = 0;
+var availableLaMetrics = [];
 logIfDebug("Debug Mode Enabled");
 
+console.log(`Starting Pi-Hole for LaMetric ${config.version}...`);
 let PiHoleResult = fetchPihole();
 authentificatePihole(PiHoleResult);
-
-let successfulLaMetricConnections = 0;
 let laMetricTest = (indexNumber) => {
   if (config.LaMetric[indexNumber] != null) {
-    spinner = ora(
+    let spinner = ora(
       `Testing Connection to LaMetric @ ${config.LaMetric[indexNumber].IP}...`
     ).start();
     fetchWithAuth(
       `http://${config.LaMetric[indexNumber].IP}:8080/api/v2/device/apps/com.lametric.58091f88c1c019c8266ccb2ea82e311d`,
-
-      `Basic ${Buffer.from(
-        `dev:${config.LaMetric[indexNumber].AuthKey}`
-      ).toString("base64")}`
+      createBasicAuth(config.LaMetric[indexNumber])
     )
       .then((LaMetricDeviceInfo) => {
         successfulLaMetricConnections++;
         fetchWithAuth(
           `http://${config.LaMetric[indexNumber].IP}:8080/api/v2/device`,
-          `Basic ${Buffer.from(
-            `dev:${config.LaMetric[indexNumber].AuthKey}`
-          ).toString("base64")}`
+          createBasicAuth(config.LaMetric[indexNumber])
         ).then((LaMetricDeviceInfo2) => {
           spinner.succeed(
             `Connected to "${LaMetricDeviceInfo2.body.name}" @ ${config.LaMetric[indexNumber].IP} running OS v${LaMetricDeviceInfo2.body.os_version} & Pi-Hole Status v${LaMetricDeviceInfo.body.version}! (${LaMetricDeviceInfo2.body.serial_number})`
@@ -94,16 +88,12 @@ let laMetricTest = (indexNumber) => {
                           ).start();
                           fetchWithAuth(
                             `http://${LaMetric.IP}:8080/api/v2/device/apps/com.lametric.58091f88c1c019c8266ccb2ea82e311d`,
-                            `Basic ${Buffer.from(
-                              `dev:${LaMetric.AuthKey}`
-                            ).toString("base64")}`
+                            createBasicAuth(LaMetric)
                           )
                             .then((LaMetricDeviceInfo) => {
                               fetchWithAuth(
                                 `http://${LaMetric.IP}:8080/api/v2/device`,
-                                `Basic ${Buffer.from(
-                                  `dev:${LaMetric.AuthKey}`
-                                ).toString("base64")}`
+                                createBasicAuth(LaMetric)
                               ).then((LaMetricDeviceInfo2) => {
                                 updateSpinner.text = `Sending update for "${LaMetricDeviceInfo2.body.name}" @ ${LaMetric.IP} to the server...`;
                                 let topQueryArray = Object.values(
@@ -213,6 +203,19 @@ let laMetricTest = (indexNumber) => {
   }
 };
 laMetricTest(0);
+
+function fetchLametric(config) {
+  let spinner = ora(`Testing Connection to LaMetric @ ${config.IP}...`).start();
+  fetchWithAuth(
+    `http://${config.IP}:8080/api/v2/device/apps/com.lametric.58091f88c1c019c8266ccb2ea82e311d`,
+
+    `Basic ${Buffer.from(`dev:${config.AuthKey}`).toString("base64")}`
+  );
+}
+
+function createBasicAuth(config) {
+  return `Basic ${Buffer.from(`dev:${config.AuthKey}`).toString("base64")}`;
+}
 
 function authentificatePihole(PiHoleResult) {
   fetch(
