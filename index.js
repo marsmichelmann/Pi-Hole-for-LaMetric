@@ -1,6 +1,5 @@
 const config = require(`./config.json`);
 const fetch = require("node-fetch");
-const { Headers } = require("node-fetch");
 const ora = require("ora");
 console.log(`Starting Pi-Hole for LaMetric ${config.version}...`);
 let spinner = ora(
