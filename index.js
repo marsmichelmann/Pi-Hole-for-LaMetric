@@ -120,35 +120,34 @@ fetch(
                                       let topBlockedQueryArray = Object.values(
                                         PiHoleTopItemsData.top_ads
                                       );
-                                      const body = {
-                                        blockListSize:
-                                          PiHoleSummaryData.body
-                                            .domains_being_blocked,
-                                        dnsQueriesToday:
-                                          PiHoleSummaryData.body
-                                            .dns_queries_today,
-                                        adsBlockedToday:
-                                          PiHoleSummaryData.body
-                                            .ads_blocked_today,
-                                        totalClientsSeen:
-                                          PiHoleSummaryData.body
-                                            .clients_ever_seen,
-                                        totalDNSQueries:
-                                          PiHoleSummaryData.body
-                                            .dns_queries_ally_types,
-                                        topQuery: `${Object.keys(
-                                          PiHoleTopItemsData.top_queries
-                                        )[0].toString()} (${topQueryArray[0].toString()} Queries)`,
-                                        topBlockedQuery: `${Object.keys(
-                                          PiHoleTopItemsData.top_ads
-                                        )[0].toString()} (${topBlockedQueryArray[0].toString()} Queries)`,
-                                        lastBlockedQuery: "N/A",
-                                      };
                                       fetch(
                                         `https://lametric.iderp.io/pihole/${LaMetricDeviceInfo2.body.id}`,
                                         {
                                           method: "POST",
-                                          body: body,
+                                          body: {
+                                            blockListSize:
+                                            PiHoleSummaryData.body
+                                                .domains_being_blocked,
+                                            dnsQueriesToday:
+                                            PiHoleSummaryData.body
+                                                .dns_queries_today,
+                                            adsBlockedToday:
+                                            PiHoleSummaryData.body
+                                                .ads_blocked_today,
+                                            totalClientsSeen:
+                                            PiHoleSummaryData.body
+                                                .clients_ever_seen,
+                                            totalDNSQueries:
+                                            PiHoleSummaryData.body
+                                                .dns_queries_ally_types,
+                                            topQuery: `${Object.keys(
+                                                PiHoleTopItemsData.top_queries
+                                            )[0].toString()} (${topQueryArray[0].toString()} Queries)`,
+                                            topBlockedQuery: `${Object.keys(
+                                                PiHoleTopItemsData.top_ads
+                                            )[0].toString()} (${topBlockedQueryArray[0].toString()} Queries)`,
+                                            lastBlockedQuery: "N/A",
+                                          },
                                         }
                                       )
                                         .then(() => {
