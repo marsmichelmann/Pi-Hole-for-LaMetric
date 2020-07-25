@@ -1,5 +1,3 @@
-var express = require("express");
-var app = express();
 const config = require(`./config.json`);
 const fetch = require("node-fetch");
 const { Headers } = require("node-fetch");
