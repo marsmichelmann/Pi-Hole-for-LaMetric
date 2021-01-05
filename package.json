@@ -17,8 +17,8 @@
     },
     "homepage": "https://github.com/iDerp/Pi-Hole-for-LaMetric#readme",
     "dependencies": {
-        "node-fetch": "^2.6.0",
-        "ora": "^4.0.5",
-        "prettier": "^2.0.5"
+        "node-fetch": "^2.6.1",
+        "ora": "^5.2.0",
+        "prettier": "^2.2.1"
     }
 }
