@@ -3,7 +3,7 @@ const fetch = require("node-fetch");
 const ora = require("ora");
 let init = false;
 let laMetricAuthKey = `Basic ${Buffer.from(
-    `dev:${config.LaMetric.AuthKey}`
+  `dev:${config.LaMetric.AuthKey}`
 ).toString("base64")}`;
 
 if (config.debugMode) {
@@ -185,8 +185,8 @@ fetch(
   });
 
 function fetchWithAuth(url, auth) {
-    return fetch(url, {
-        method: "GET",
-        headers: {Authorization: auth},
-    }).then((res) => res.json());
+  return fetch(url, {
+    method: "GET",
+    headers: { Authorization: auth },
+  }).then((res) => res.json());
 }
