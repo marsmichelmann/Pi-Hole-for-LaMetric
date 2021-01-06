@@ -1,18 +1,18 @@
 const config = require(`./config.json`);
 const fetch = require("node-fetch");
 const ora = require("ora");
-console.log(`Starting Pi-Hole for LaMetric ${config.version}...`);
-let spinner = ora(
-  `Testing Pi-Hole Connection @ ${config.PiHole.IP}...`
-).start();
 let init = false;
 let laMetricAuthKey = `Basic ${Buffer.from(
-  `dev:${config.LaMetric.AuthKey}`
+    `dev:${config.LaMetric.AuthKey}`
 ).toString("base64")}`;
 
 if (config.debugMode) {
   console.log("Debug Mode Enabled");
 }
+console.log(`Starting Pi-Hole for LaMetric ${config.version}...`);
+let spinner = ora(
+  `Testing Pi-Hole Connection @ ${config.PiHole.IP}...`
+).start();
 
 fetch(
   `http://${config.PiHole.IP}/admin/api.php?getQueryTypes&auth=${config.PiHole.AuthKey}`
