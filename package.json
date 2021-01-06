@@ -6,21 +6,11 @@
     "scripts": {
         "test": "echo \"Error: no test specified\" && exit 1"
     },
-    "repository": {
-        "type": "git",
-        "url": "git+https://github.com/iDerp/Pi-Hole-for-LaMetric.git"
-    },
-    "author": "",
+    "author": "Markus Michel",
     "license": "ISC",
-    "bugs": {
-        "url": "https://github.com/iDerp/Pi-Hole-for-LaMetric/issues"
-    },
-    "homepage": "https://github.com/iDerp/Pi-Hole-for-LaMetric#readme",
     "dependencies": {
-        "express": "^4.17.1",
         "node-fetch": "^2.6.1",
         "ora": "^5.2.0",
-        "prettier": "^2.2.1",
-        "snekfetch": "^4.0.4"
+        "prettier": "^2.2.1"
     }
 }
