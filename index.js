@@ -22,7 +22,8 @@ function fetchWithAuth(url, auth) {
 }
 
 let updateLaMetric = () => {
-  var piHoleCalls = [
+  // request data from pi hole and combine it
+  let piHoleCalls = [
     fetch(
       `http://${config.PiHole.IP}/admin/api.php?summary&auth=${config.PiHole.AuthKey}`
     ).then((res) => res.json()),
@@ -62,7 +63,7 @@ let updateLaMetric = () => {
       `http://${config.LaMetric.IP}:8080/api/v2/device/apps/com.lametric.58091f88c1c019c8266ccb2ea82e311d`,
       laMetricAuthKey
     )
-      .then((laMetricDeviceInfo) => {
+      .then(() => {
         fetchWithAuth(
           `http://${config.LaMetric.IP}:8080/api/v2/device`,
           laMetricAuthKey
@@ -81,11 +82,11 @@ let updateLaMetric = () => {
       .catch((err) => {
         logIfDebug(err);
         if (err.statusCode != null && err.body.errors != null) {
-          if (err.statusCode == 401) {
+          if (err.statusCode === 401) {
             updateSpinner.fail(
               `Update failed to send for LaMetric @ ${config.LaMetric.IP}. Auth invalid.`
             );
-          } else if (err.statusCode == 404) {
+          } else if (err.statusCode === 404) {
             updateSpinner.fail(
               `Update failed to send for LaMetric @ ${config.LaMetric.IP}. Pi-Hole Status app not installed on the LaMetric.`
             );
@@ -104,7 +105,7 @@ let updateLaMetric = () => {
 };
 
 let laMetricTest = () => {
-  if (init == false) {
+  if (init === false) {
     spinner = ora(
       `Testing Connection to LaMetric @ ${config.LaMetric.IP}...`
     ).start();
@@ -127,11 +128,11 @@ let laMetricTest = () => {
       .catch((err) => {
         logIfDebug(err);
         if (err.statusCode != null && err.body.errors != null) {
-          if (err.statusCode == 401) {
+          if (err.statusCode === 401) {
             spinner.fail(
               `Connection to LaMetric @ ${config.LaMetric.IP} Failed. Auth invalid.`
             );
-          } else if (err.statusCode == 404) {
+          } else if (err.statusCode === 404) {
             spinner.fail(
               `Connection to LaMetric @ ${config.LaMetric.IP} Failed. Pi-Hole Status app not installed on the LaMetric.`
             );
