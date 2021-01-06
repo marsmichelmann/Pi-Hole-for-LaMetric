@@ -21,7 +21,6 @@ fetch(
     spinner = ora(`Testing Pi-Hole Auth...`).start();
     if (piHoleRes.querytypes != null) {
       spinner.succeed(`Pi-Hole Auth Valid!`);
-      let successfulLaMetricConnections = 0;
       let laMetricTest = () => {
         if (init == false) {
           spinner = ora(
@@ -32,7 +31,6 @@ fetch(
             laMetricAuthKey
           )
             .then((laMetricDeviceInfo) => {
-              successfulLaMetricConnections++;
               fetchWithAuth(
                 `http://${config.LaMetric.IP}:8080/api/v2/device`,
                 laMetricAuthKey
