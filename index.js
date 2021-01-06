@@ -6,6 +6,9 @@ let spinner = ora(
   `Testing Pi-Hole Connection @ ${config.PiHole.IP}...`
 ).start();
 let init = false;
+let laMetricAuthKey = `Basic ${Buffer.from(
+  `dev:${config.LaMetric.AuthKey}`
+).toString("base64")}`;
 
 if (config.debugMode) {
   console.log("Debug Mode Enabled");
@@ -26,18 +29,15 @@ fetch(
           spinner = ora(
             `Testing Connection to LaMetric @ ${config.LaMetric.IP}...`
           ).start();
-          let laMetricAuthValue = `Basic ${Buffer.from(
-            `dev:${config.LaMetric.AuthKey}`
-          ).toString("base64")}`;
           fetchWithAuth(
             `http://${config.LaMetric.IP}:8080/api/v2/device/apps/com.lametric.58091f88c1c019c8266ccb2ea82e311d`,
-            laMetricAuthValue
+            laMetricAuthKey
           )
             .then((laMetricDeviceInfo) => {
               successfulLaMetricConnections++;
               fetchWithAuth(
                 `http://${config.LaMetric.IP}:8080/api/v2/device`,
-                laMetricAuthValue
+                laMetricAuthKey
               ).then((laMetricDeviceInfo2) => {
                 spinner.succeed(
                   `Connected to "${laMetricDeviceInfo2.name}" @ ${config.LaMetric.IP} running OS v${laMetricDeviceInfo2.os_version} & Pi-Hole Status v${laMetricDeviceInfo.version}! (${laMetricDeviceInfo2.serial_number})`
@@ -113,16 +113,12 @@ fetch(
               ).start();
               fetchWithAuth(
                 `http://${config.LaMetric.IP}:8080/api/v2/device/apps/com.lametric.58091f88c1c019c8266ccb2ea82e311d`,
-                `Basic ${Buffer.from(`dev:${config.LaMetric.AuthKey}`).toString(
-                  "base64"
-                )}`
+                laMetricAuthKey
               )
                 .then((laMetricDeviceInfo) => {
                   fetchWithAuth(
                     `http://${config.LaMetric.IP}:8080/api/v2/device`,
-                    `Basic ${Buffer.from(
-                      `dev:${config.LaMetric.AuthKey}`
-                    ).toString("base64")}`
+                    laMetricAuthKey
                   ).then((laMetricDeviceInfo2) => {
                     updateSpinner.text = `Sending update for "${laMetricDeviceInfo2.name}" @ ${config.LaMetric.IP} to the server...`;
                     fetch(
@@ -189,8 +185,8 @@ fetch(
   });
 
 function fetchWithAuth(url, auth) {
-  return fetch(url, {
-    method: "GET",
-    headers: { Authorization: auth },
-  }).then((res) => res.json());
+    return fetch(url, {
+        method: "GET",
+        headers: {Authorization: auth},
+    }).then((res) => res.json());
 }
