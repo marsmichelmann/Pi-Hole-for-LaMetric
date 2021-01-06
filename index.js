@@ -6,9 +6,7 @@ let laMetricAuthKey = `Basic ${Buffer.from(
   `dev:${config.LaMetric.AuthKey}`
 ).toString("base64")}`;
 
-if (config.debugMode) {
-  console.log("Debug Mode Enabled");
-}
+logIfDebug("Debug Mode Enabled")
 console.log(`Starting Pi-Hole for LaMetric ${config.version}...`);
 let spinner = ora(
   `Testing Pi-Hole Connection @ ${config.PiHole.IP}...`
@@ -47,9 +45,7 @@ fetch(
               });
             })
             .catch((err) => {
-              if (config.debugMode) {
-                console.log(err);
-              }
+              logIfDebug(err);
               if (err.statusCode != null && err.body.errors != null) {
                 if (err.statusCode == 401) {
                   spinner.fail(
@@ -135,9 +131,7 @@ fetch(
                   });
                 })
                 .catch((err) => {
-                  if (config.debugMode) {
-                    console.log(err);
-                  }
+                  logIfDebug(err);
                   if (err.statusCode != null && err.body.errors != null) {
                     if (err.statusCode == 401) {
                       updateSpinner.fail(
@@ -175,14 +169,18 @@ fetch(
     }
   })
   .catch((err) => {
-    if (config.debugMode) {
-      console.log(err);
-    }
+    logIfDebug(err);
     spinner.fail(
       "Unable to connect to Pi-Hole via the supplied IP. Make sure that the IP is correct."
     );
     process.exit();
   });
+
+function logIfDebug(msg) {
+  if (config.debugMode) {
+    console.log(msg);
+  }
+}
 
 function fetchWithAuth(url, auth) {
   return fetch(url, {
