@@ -165,7 +165,6 @@ console.log(`Starting Pi-Hole for LaMetric ${config.version}...`);
 let spinner = ora(
   `Testing Pi-Hole Connection @ ${config.PiHole.IP}...`
 ).start();
-
 fetch(
   `http://${config.PiHole.IP}/admin/api.php?getQueryTypes&auth=${config.PiHole.AuthKey}`
 )
@@ -192,3 +191,4 @@ fetch(
   });
 
 // main program END
+module.exports = fetchWithAuth;
