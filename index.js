@@ -91,7 +91,9 @@ let updateLaMetric = () => {
             body: body,
           }).then(() => {
             updateSpinner.succeed(
-              `Sent update for "${laMetricDeviceInfo2.name}" @ ${config.LaMetric.IP} to the server!`
+              `Sent update for "${laMetricDeviceInfo2.name}" @ ${
+                config.LaMetric.IP
+              } to the server (sent data: "${JSON.stringify(body, null, 2)}")!`
             );
           });
         });
