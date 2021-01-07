@@ -21,6 +21,34 @@ function fetchWithAuth(url, auth) {
   }).then((res) => res.json());
 }
 
+/**
+ * Maps the given index of the given map to human readable string.
+ * @param map of data.
+ * @param index the desired index.
+ */
+function mapKeyValuePairToString(data, index) {
+  let keys = Object.keys(data);
+  let values = Object.values(data);
+  return `${keys[index].toString()} (${values[index].toString()} Queries)`;
+}
+
+function mapToBody(
+  piHoleSummaryData,
+  piHoleTopItemsData,
+  piHoleRecentBlockedData
+) {
+  return {
+    blockListSize: piHoleSummaryData.domains_being_blocked,
+    dnsQueriesToday: piHoleSummaryData.dns_queries_today,
+    adsBlockedToday: piHoleSummaryData.ads_blocked_today,
+    totalClientsSeen: piHoleSummaryData.clients_ever_seen,
+    totalDNSQueries: piHoleSummaryData.dns_queries_all_types,
+    topQuery: mapKeyValuePairToString(piHoleTopItemsData.top_queries, 0),
+    topBlockedQuery: mapKeyValuePairToString(piHoleTopItemsData.top_ads, 0),
+    lastBlockedQuery: piHoleRecentBlockedData,
+  };
+}
+
 let updateLaMetric = () => {
   // request data from pi hole and combine it
   let piHoleCalls = [
@@ -39,22 +67,11 @@ let updateLaMetric = () => {
     piHoleTopItemsData,
     piHoleRecentBlockedData,
   ]) {
-    let topQueryArray = Object.values(piHoleTopItemsData.top_queries);
-    let topBlockedQueryArray = Object.values(piHoleTopItemsData.top_ads);
-    let body = {
-      blockListSize: piHoleSummaryData.domains_being_blocked,
-      dnsQueriesToday: piHoleSummaryData.dns_queries_today,
-      adsBlockedToday: piHoleSummaryData.ads_blocked_today,
-      totalClientsSeen: piHoleSummaryData.clients_ever_seen,
-      totalDNSQueries: piHoleSummaryData.dns_queries_all_types,
-      topQuery: `${Object.keys(
-        piHoleTopItemsData.top_queries
-      )[0].toString()} (${topQueryArray[0].toString()} Queries)`,
-      topBlockedQuery: `${Object.keys(
-        piHoleTopItemsData.top_ads
-      )[0].toString()} (${topBlockedQueryArray[0].toString()} Queries)`,
-      lastBlockedQuery: piHoleRecentBlockedData,
-    };
+    let body = mapToBody(
+      piHoleSummaryData,
+      piHoleTopItemsData,
+      piHoleRecentBlockedData
+    );
 
     let updateSpinner = ora(
       `Connecting to LaMetric @ ${config.LaMetric.IP}...`
@@ -191,4 +208,7 @@ fetch(
   });
 
 // main program END
-module.exports = fetchWithAuth;
+exports.fetchWithAuth = fetchWithAuth;
+exports.logIfDebug = logIfDebug;
+exports.mapToBody = mapToBody;
+exports.mapKeyValuePairToString = mapKeyValuePairToString;
