@@ -175,39 +175,43 @@ let laMetricTest = () => {
   }
 };
 
+let piHoleTest = () => {
+  logIfDebug("Debug Mode Enabled");
+  console.log(`Starting Pi-Hole for LaMetric ${config.version}...`);
+  let spinner = ora(
+    `Testing Pi-Hole Connection @ ${config.PiHole.IP}...`
+  ).start();
+  fetch(
+    `http://${config.PiHole.IP}/admin/api.php?getQueryTypes&auth=${config.PiHole.AuthKey}`
+  )
+    .then((res) => res.json())
+    .then((piHoleRes) => {
+      spinner.succeed(`Pi-Hole Connection @ ${config.PiHole.IP} Successful!`);
+      spinner = ora(`Testing Pi-Hole Auth...`).start();
+      if (piHoleRes.querytypes != null) {
+        spinner.succeed(`Pi-Hole Auth Valid!`);
+        laMetricTest(0);
+      } else {
+        spinner.fail(
+          "Pi-Hole Auth Invalid! Make sure the supplied key is correct."
+        );
+        process.exit();
+      }
+    })
+    .catch((err) => {
+      logIfDebug(err);
+      spinner.fail(
+        "Unable to connect to Pi-Hole via the supplied IP. Make sure that the IP is correct."
+      );
+      process.exit();
+    });
+};
+
 // define functions END
 
 // main program START
 
-logIfDebug("Debug Mode Enabled");
-console.log(`Starting Pi-Hole for LaMetric ${config.version}...`);
-let spinner = ora(
-  `Testing Pi-Hole Connection @ ${config.PiHole.IP}...`
-).start();
-fetch(
-  `http://${config.PiHole.IP}/admin/api.php?getQueryTypes&auth=${config.PiHole.AuthKey}`
-)
-  .then((res) => res.json())
-  .then((piHoleRes) => {
-    spinner.succeed(`Pi-Hole Connection @ ${config.PiHole.IP} Successful!`);
-    spinner = ora(`Testing Pi-Hole Auth...`).start();
-    if (piHoleRes.querytypes != null) {
-      spinner.succeed(`Pi-Hole Auth Valid!`);
-      laMetricTest(0);
-    } else {
-      spinner.fail(
-        "Pi-Hole Auth Invalid! Make sure the supplied key is correct."
-      );
-      process.exit();
-    }
-  })
-  .catch((err) => {
-    logIfDebug(err);
-    spinner.fail(
-      "Unable to connect to Pi-Hole via the supplied IP. Make sure that the IP is correct."
-    );
-    process.exit();
-  });
+piHoleTest();
 
 // main program END
 exports.fetchWithAuth = fetchWithAuth;
