@@ -14,7 +14,7 @@ let main = () => {
     .then(laMetricTest)
     // send initial update
     .then(updateLaMetric)
-    .then(startUpdateTimer)
+    .then(startUpdateTimer(updateLaMetric))
     .catch((err) => {
       logIfDebug(err);
     });
@@ -176,11 +176,12 @@ let updateLaMetric = () => {
 };
 
 /**
- * Starts interval timer for period update based on the config.
+ * Starts interval timer for calling the given callback function based on the config.
+ * @param callback the function to call
  */
-let startUpdateTimer = () => {
+let startUpdateTimer = (callback) => {
   setInterval(() => {
-    updateLaMetric();
+    callback();
   }, config.updateInterval * 1000);
 };
 
@@ -235,9 +236,6 @@ let mapToBody = (
   };
 };
 
-// TODO remove me
-//main();
-
 module.exports = {
   main,
   fetchWithAuth,
@@ -247,4 +245,5 @@ module.exports = {
   piHoleTest,
   laMetricTest,
   updateLaMetric,
+  startUpdateTimer,
 };

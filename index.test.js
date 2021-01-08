@@ -17,12 +17,33 @@ const { lametricNotFoundErrorResponse } = require("./index.mockdata");
 const { lametricUnauthorizedResponse } = require("./index.mockdata");
 const { laMetricDeviceInfo } = require("./index.mockdata");
 const { laMetricDeviceInfo2 } = require("./index.mockdata");
+const { startUpdateTimer } = require("./index");
 
 describe("testing pi hole for lametric", () => {
   beforeEach(() => {
     config.debugMode = true;
     jest.useFakeTimers();
   });
+
+  it("should handle interval timer", async () => {
+    const callbackMock = jest.fn(() => {});
+
+    startUpdateTimer(callbackMock);
+
+    // At this point in time, there should have been a single call to
+    // setTimeout to schedule in 60 sec.
+    expect(setInterval).toHaveBeenCalledTimes(1);
+    expect(setInterval).toHaveBeenLastCalledWith(expect.any(Function), 60000);
+
+    // Fast forward and exhaust only currently pending timers
+    // (but not any new timers that get created during that process)
+    jest.runOnlyPendingTimers();
+
+    // At this point, our 1-second timer should have fired it's callback
+    expect(callbackMock).toBeCalled();
+    jest.clearAllTimers();
+  });
+
 
   it("should fetch Json Placeholder via fetchWithAuth", () => {
     return fetchWithAuth("https://jsonplaceholder.typicode.com/todos/1").then(
@@ -172,21 +193,36 @@ describe("testing pi hole for lametric", () => {
   it("should work integrativly with mocks", async () => {
     fetchMock.doMock();
     fetchMock.mockResponses(
-        [JSON.stringify(piHoleResponse)], // init pi hole
-        [JSON.stringify(laMetricDeviceInfo)], // init lametric
-        [JSON.stringify(laMetricDeviceInfo2)],
-        [JSON.stringify(piHoleSummaryData)], // update
-        [JSON.stringify(piHoleTopItemsData)],
-        [JSON.stringify(piHoleRecentBlockedData)],
-        [JSON.stringify(laMetricDeviceInfo)],
-        [JSON.stringify(laMetricDeviceInfo2)],
-        [JSON.stringify({})] // post request to lametric.iderp.io
+      [JSON.stringify(piHoleResponse)], // init pi hole
+      [JSON.stringify(laMetricDeviceInfo)], // init lametric
+      [JSON.stringify(laMetricDeviceInfo2)],
+      [JSON.stringify(piHoleSummaryData)], // update
+      [JSON.stringify(piHoleTopItemsData)],
+      [JSON.stringify(piHoleRecentBlockedData)],
+      [JSON.stringify(laMetricDeviceInfo)],
+      [JSON.stringify(laMetricDeviceInfo2)],
+      [JSON.stringify({})] // post request to lametric.iderp.io
     );
     const flushPromises = () => new Promise(setImmediate);
 
     main();
     await flushPromises();
 
+    fetchMock.dontMock();
+    jest.clearAllTimers();
+  });
+
+  it("should run into an error integrativly", async () => {
+    fetchMock.doMock();
+    fetchMock.mockReject(piHoleErrorResponse);
+    const spyConsole = jest.spyOn(console, "log").mockImplementation();
+    const flushPromises = () => new Promise(setImmediate);
+
+    main();
+    await flushPromises();
+
+    expect(spyConsole).toBeCalledWith(piHoleErrorResponse);
+    spyConsole.mockRestore();
     fetchMock.dontMock();
   });
 
