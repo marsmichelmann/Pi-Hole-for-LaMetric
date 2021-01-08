@@ -13,7 +13,7 @@ const { piHoleResponse } = require("./index.mockdata");
 const { laMetricTest } = require("./index");
 
 describe("testing pi hole for lametric", () => {
-  beforeAll(() => {
+  beforeEach(() => {
     config.debugMode = true;
     jest.useFakeTimers();
   });
@@ -79,57 +79,45 @@ describe("testing pi hole for lametric", () => {
     );
   });
 
-  it("should exit program, when init of pi hole leads to error response", async () => {
+  it("should call catch callback function, when init of pi hole leads to error response", async () => {
     fetchMock.doMock();
     fetchMock.mockReject(piHoleErrorResponse);
     const spyConsole = jest.spyOn(console, "log").mockImplementation();
-    const spyProcessExit = jest
-      .spyOn(process, "exit")
-      .mockImplementation(() => {});
+    const callbackMock = jest.fn(() => {});
     const flushPromises = () => new Promise(setImmediate);
 
-    piHoleTest();
+    piHoleTest().catch(callbackMock);
     await flushPromises();
 
-    expect(spyProcessExit).toBeCalled();
     expect(spyConsole).toBeCalledWith(piHoleErrorResponse);
-    spyProcessExit.mockRestore();
+    expect(callbackMock).toBeCalled();
     spyConsole.mockRestore();
     fetchMock.dontMock();
   });
 
-  it("should exit program, when init of pi hole leads to unexpeced response", async () => {
+  it("should call catch callback function, when init of pi hole leads to unexpected response", async () => {
     fetchMock.doMock();
     fetchMock.mockResponse(JSON.stringify(piHoleInvalidResponse));
-    const spyProcessExit = jest
-      .spyOn(process, "exit")
-      .mockImplementation(() => {});
+    const callbackMock = jest.fn(() => {});
     const flushPromises = () => new Promise(setImmediate);
 
-    piHoleTest();
+    piHoleTest().catch(callbackMock);
     await flushPromises();
 
-    expect(spyProcessExit).toBeCalled();
-    spyProcessExit.mockRestore();
+    expect(callbackMock).toBeCalled();
     fetchMock.dontMock();
   });
 
-  it("should call callback function, when init of pi hole is successful", async () => {
+  it("should then call callback function, when init of pi hole is successful", async () => {
     fetchMock.doMock();
     fetchMock.mockResponse(JSON.stringify(piHoleResponse));
-
     const callbackMock = jest.fn(() => {});
-    const spyProcessExit = jest
-      .spyOn(process, "exit")
-      .mockImplementation(() => {});
     const flushPromises = () => new Promise(setImmediate);
 
-    piHoleTest(callbackMock);
+    piHoleTest().then(callbackMock);
     await flushPromises();
 
-    expect(spyProcessExit).not.toBeCalled();
     expect(callbackMock).toBeCalled();
-    spyProcessExit.mockRestore();
     fetchMock.dontMock();
   });
 });

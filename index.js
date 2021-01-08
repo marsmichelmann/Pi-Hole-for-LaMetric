@@ -176,16 +176,15 @@ let laMetricTest = () => {
 };
 
 /**
- * Checks if connection to pi hole can be established. In case everything works fine the given callback function is called.
- * @param callback reference to the callback function.
+ * Checks if connection to pi hole can be established. In case everything works fine a resolved promise is returned, otherwise a rejected promise.
  */
-let piHoleTest = (callback) => {
+let piHoleTest = () => {
   logIfDebug("Debug Mode Enabled");
   console.log(`Starting Pi-Hole for LaMetric ${config.version}...`);
   let spinner = ora(
     `Testing Pi-Hole Connection @ ${config.PiHole.IP}...`
   ).start();
-  fetch(
+  return fetch(
     `http://${config.PiHole.IP}/admin/api.php?getQueryTypes&auth=${config.PiHole.AuthKey}`
   )
     .then((res) => res.json())
@@ -194,12 +193,12 @@ let piHoleTest = (callback) => {
       spinner = ora(`Testing Pi-Hole Auth...`).start();
       if (piHoleRes.querytypes != null) {
         spinner.succeed(`Pi-Hole Auth Valid!`);
-        callback();
+        return Promise.resolve();
       } else {
         spinner.fail(
           "Pi-Hole Auth Invalid! Make sure the supplied key is correct."
         );
-        process.exit();
+        return Promise.reject();
       }
     })
     .catch((err) => {
@@ -207,7 +206,7 @@ let piHoleTest = (callback) => {
       spinner.fail(
         "Unable to connect to Pi-Hole via the supplied IP. Make sure that the IP is correct."
       );
-      process.exit();
+      return Promise.reject();
     });
 };
 
@@ -215,7 +214,9 @@ let piHoleTest = (callback) => {
 
 // main program START
 
-//piHoleTest(laMetricTest);
+piHoleTest().then(() => {
+  laMetricTest();
+});
 
 // main program END
 exports.fetchWithAuth = fetchWithAuth;
