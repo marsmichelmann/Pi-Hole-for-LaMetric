@@ -135,7 +135,7 @@ let updateLaMetric = () => {
       ).start();
       // TODO MMI move to separate method?
       fetchWithAuth(
-        `http://${config.LaMetric.IP}:8080/api/v2/device/apps/com.lametric.58091f88c1c019c8266ccb2ea82e311d`,
+        `http://127.0.0.1:8080/api/v2/device/apps/com.lametric.58091f88c1c019c8266ccb2ea82e311d`,
         laMetricAuthKey
       )
         .then(() => {
@@ -199,12 +199,22 @@ let startUpdateTimer = () => {
   }, config.updateInterval * 1000);
 };
 
+/**
+ * Logs the given msg if debug mode is enabled.
+ * @param msg the message to log.
+ */
 let logIfDebug = (msg) => {
   if (config.debugMode) {
     console.log(msg);
   }
 };
 
+/**
+ * Triggers fetch get request for the given url with the given authorization header.
+ * @param url the url to call.
+ * @param auth the authorization header.
+ * @returns {Promise<*>} of the called fetch.
+ */
 let fetchWithAuth = (url, auth) => {
   return fetch(url, {
     method: "GET",
