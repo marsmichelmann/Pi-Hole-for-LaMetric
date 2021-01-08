@@ -111,7 +111,6 @@ let updateLaMetric = () => {
           });
         })
         .catch((err) => {
-          logIfDebug(err);
           if (err.statusCode != null && err.body.errors != null) {
             if (err.statusCode === 401) {
               updateSpinner.fail(
@@ -131,7 +130,7 @@ let updateLaMetric = () => {
               `Update failed to send for LaMetric @ ${config.LaMetric.IP}. LaMetric does not seem to linked to this IP.`
             );
           }
-          return reject();
+          return reject(err);
         });
     });
   });
@@ -144,9 +143,6 @@ let startUpdateTimer = () => {
   setInterval(() => {
     updateLaMetric();
   }, config.updateInterval * 1000);
-  return new Promise((resolve) => {
-    resolve();
-  });
 };
 
 /**
@@ -173,7 +169,6 @@ let laMetricTest = () => {
         });
       })
       .catch((err) => {
-        logIfDebug(err);
         if (err.statusCode != null && err.body.errors != null) {
           if (err.statusCode === 401) {
             spinner.fail(
@@ -193,7 +188,7 @@ let laMetricTest = () => {
             `Connection to LaMetric @ ${config.LaMetric.IP} Failed. LaMetric does not seem to linked to this IP.`
           );
         }
-        return reject();
+        return reject(err);
       });
   });
 };
@@ -225,26 +220,26 @@ let piHoleTest = () => {
       }
     })
     .catch((err) => {
-      logIfDebug(err);
       spinner.fail(
         "Unable to connect to Pi-Hole via the supplied IP. Make sure that the IP is correct."
       );
-      return Promise.reject();
+      return Promise.reject(err);
     });
 };
 
+/**
+ * Main program.
+ *
+ */
 let main = () => {
-  piHoleTest();
-  //   .then(laMetricTest)
-  //   // send initial update
-  //   .then(updateLaMetric)
-  //   .then(startUpdateTimer)
-  //   .then(() => {
-  //     console.log("bla");
-  //   })
-  //   .catch((err) => {
-  //     logIfDebug(err);
-  //   });
+  piHoleTest()
+    .then(laMetricTest)
+    // send initial update
+    .then(updateLaMetric)
+    .then(startUpdateTimer)
+    .catch((err) => {
+      logIfDebug(err);
+    });
 };
 
 // define functions END

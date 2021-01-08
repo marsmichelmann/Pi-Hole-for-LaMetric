@@ -11,6 +11,7 @@ const { piHoleInvalidResponse } = require("./index.mockdata");
 const { piHoleTest } = require("./index");
 const { piHoleResponse } = require("./index.mockdata");
 const { laMetricTest } = require("./index");
+const { main } = require("./index");
 
 describe("testing pi hole for lametric", () => {
   beforeEach(() => {
@@ -118,6 +119,28 @@ describe("testing pi hole for lametric", () => {
     await flushPromises();
 
     expect(callbackMock).toBeCalled();
+    fetchMock.dontMock();
+  });
+
+  // TODO MMI add tests for
+  // laMetricTest
+  // updateLaMetric
+  // startUpdateTimer
+
+  // TODO MMI
+  it("should work integatively", async () => {
+    fetchMock.doMock();
+    fetchMock.mockReject(piHoleErrorResponse);
+    const spyConsole = jest.spyOn(console, "log").mockImplementation();
+    const callbackMock = jest.fn(() => {});
+    const flushPromises = () => new Promise(setImmediate);
+
+    main();
+    //await flushPromises();
+
+    //expect(spyConsole).toBeCalledWith(piHoleErrorResponse);
+    //expect(callbackMock).toBeCalled();
+    spyConsole.mockRestore();
     fetchMock.dontMock();
   });
 });
