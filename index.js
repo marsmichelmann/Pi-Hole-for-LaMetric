@@ -233,27 +233,27 @@ let piHoleTest = () => {
     });
 };
 
+let main = () => {
+  piHoleTest();
+  //   .then(laMetricTest)
+  //   // send initial update
+  //   .then(updateLaMetric)
+  //   .then(startUpdateTimer)
+  //   .then(() => {
+  //     console.log("bla");
+  //   })
+  //   .catch((err) => {
+  //     logIfDebug(err);
+  //   });
+};
+
 // define functions END
-
-piHoleTest()
-  .then(laMetricTest)
-  // send initial update
-  .then(updateLaMetric)
-  .then(startUpdateTimer)
-  .then(() => {
-    console.log("bla");
-  });
-
-// } else {
-//   startUpdateTimer();
-//   updateLaMetric();
-// }
-// };
-
-// main program END
-exports.fetchWithAuth = fetchWithAuth;
-exports.logIfDebug = logIfDebug;
-exports.mapToBody = mapToBody;
-exports.mapKeyValuePairToString = mapKeyValuePairToString;
-exports.piHoleTest = piHoleTest;
-exports.laMetricTest = laMetricTest;
+module.exports = {
+  main,
+  fetchWithAuth,
+  logIfDebug,
+  mapToBody,
+  mapKeyValuePairToString,
+  piHoleTest,
+  laMetricTest,
+};
