@@ -23,6 +23,8 @@
         "automock": false,
         "setupFiles": [
             "./setupJest.js"
-        ]
+        ],
+        "collectCoverage": true,
+        "coverageReporters": ["text"]
     }
 }

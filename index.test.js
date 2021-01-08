@@ -83,16 +83,13 @@ describe("testing pi hole for lametric", () => {
   it("should call catch callback function, when init of pi hole leads to error response", async () => {
     fetchMock.doMock();
     fetchMock.mockReject(piHoleErrorResponse);
-    const spyConsole = jest.spyOn(console, "log").mockImplementation();
     const callbackMock = jest.fn(() => {});
     const flushPromises = () => new Promise(setImmediate);
 
     piHoleTest().catch(callbackMock);
     await flushPromises();
 
-    expect(spyConsole).toBeCalledWith(piHoleErrorResponse);
     expect(callbackMock).toBeCalled();
-    spyConsole.mockRestore();
     fetchMock.dontMock();
   });
 
@@ -127,20 +124,20 @@ describe("testing pi hole for lametric", () => {
   // updateLaMetric
   // startUpdateTimer
 
-  // TODO MMI
-  it("should work integatively", async () => {
-    fetchMock.doMock();
-    fetchMock.mockReject(piHoleErrorResponse);
-    const spyConsole = jest.spyOn(console, "log").mockImplementation();
-    const callbackMock = jest.fn(() => {});
-    const flushPromises = () => new Promise(setImmediate);
-
-    main();
-    //await flushPromises();
-
-    //expect(spyConsole).toBeCalledWith(piHoleErrorResponse);
-    //expect(callbackMock).toBeCalled();
-    spyConsole.mockRestore();
-    fetchMock.dontMock();
-  });
+  // // TODO MMI
+  // it("should work integatively", async () => {
+  //   fetchMock.doMock();
+  //   fetchMock.mockReject(piHoleErrorResponse);
+  //   const spyConsole = jest.spyOn(console, "log").mockImplementation();
+  //   const callbackMock = jest.fn(() => {});
+  //   const flushPromises = () => new Promise(setImmediate);
+  //
+  //   main();
+  //   //await flushPromises();
+  //
+  //   //expect(spyConsole).toBeCalledWith(piHoleErrorResponse);
+  //   //expect(callbackMock).toBeCalled();
+  //   spyConsole.mockRestore();
+  //   fetchMock.dontMock();
+  // });
 });
