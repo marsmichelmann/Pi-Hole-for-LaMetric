@@ -62,7 +62,7 @@ let isUnauthorized = (response) => {
   return (
     response.errors &&
     response.errors[0].message &&
-    response.errors[0].message == "Authorization is required"
+    response.errors[0].message === "Authorization is required"
   );
 };
 
@@ -209,8 +209,8 @@ let fetchWithAuth = (url, auth) => {
 };
 
 /**
- * Maps the given index of the given map to human readable string.
- * @param map of data.
+ * Maps the given index of the given data map to human readable string.
+ * @param data.
  * @param index the desired index.
  */
 let mapKeyValuePairToString = (data, index) => {
