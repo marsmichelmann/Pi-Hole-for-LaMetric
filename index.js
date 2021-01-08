@@ -175,7 +175,11 @@ let laMetricTest = () => {
   }
 };
 
-let piHoleTest = () => {
+/**
+ * Checks if connection to pi hole can be established. In case everything works fine the given callback function is called.
+ * @param callback reference to the callback function.
+ */
+let piHoleTest = (callback) => {
   logIfDebug("Debug Mode Enabled");
   console.log(`Starting Pi-Hole for LaMetric ${config.version}...`);
   let spinner = ora(
@@ -190,7 +194,7 @@ let piHoleTest = () => {
       spinner = ora(`Testing Pi-Hole Auth...`).start();
       if (piHoleRes.querytypes != null) {
         spinner.succeed(`Pi-Hole Auth Valid!`);
-        laMetricTest(0);
+        callback();
       } else {
         spinner.fail(
           "Pi-Hole Auth Invalid! Make sure the supplied key is correct."
@@ -211,10 +215,12 @@ let piHoleTest = () => {
 
 // main program START
 
-piHoleTest();
+//piHoleTest(laMetricTest);
 
 // main program END
 exports.fetchWithAuth = fetchWithAuth;
 exports.logIfDebug = logIfDebug;
 exports.mapToBody = mapToBody;
 exports.mapKeyValuePairToString = mapKeyValuePairToString;
+exports.piHoleTest = piHoleTest;
+exports.laMetricTest = laMetricTest;
