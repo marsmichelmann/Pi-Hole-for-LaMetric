@@ -11,6 +11,7 @@ const { piHoleInvalidResponse } = require("./index.mockdata");
 const { piHoleTest } = require("./index");
 const { piHoleResponse } = require("./index.mockdata");
 const { laMetricTest } = require("./index");
+const { updateLaMetric } = require("./index");
 const { main } = require("./index");
 const { lametricNotFoundErrorResponse } = require("./index.mockdata");
 const { lametricUnauthorizedResponse } = require("./index.mockdata");
@@ -121,8 +122,62 @@ describe("testing pi hole for lametric", () => {
     fetchMock.dontMock();
   });
 
+  it("should call catch callback function, when init of lametric on calling updateLaMetric leads to error response", async () => {
+    fetchMock.doMock();
+    fetchMock.mockResponses(
+        [JSON.stringify(piHoleSummaryData)],
+        [JSON.stringify(piHoleTopItemsData)],
+        [JSON.stringify(piHoleRecentBlockedData)]
+    );
+    fetchMock.mockReject(JSON.stringify(lametricNotFoundErrorResponse));
+    const callbackMock = jest.fn(() => {});
+    const flushPromises = () => new Promise(setImmediate);
+
+    updateLaMetric().catch(callbackMock);
+    await flushPromises();
+
+    expect(callbackMock).toBeCalled();
+    fetchMock.dontMock();
+  });
+
+  it("should call catch callback function, when connection to found lametric is unauthorized on calling updateLaMetric", async () => {
+    fetchMock.doMock();
+    fetchMock.mockResponses(
+        [JSON.stringify(piHoleSummaryData)],
+        [JSON.stringify(piHoleTopItemsData)],
+        [JSON.stringify(piHoleRecentBlockedData)],
+        [JSON.stringify(lametricUnauthorizedResponse)]
+    );
+    const callbackMock = jest.fn(() => {});
+    const flushPromises = () => new Promise(setImmediate);
+
+    updateLaMetric().catch(callbackMock);
+    await flushPromises();
+
+    expect(callbackMock).toBeCalled();
+    fetchMock.dontMock();
+  });
+
+  it("should call callback function, when update of lametric is successful", async () => {
+    fetchMock.doMock();
+    fetchMock.mockResponses(
+        [JSON.stringify(piHoleSummaryData)],
+        [JSON.stringify(piHoleTopItemsData)],
+        [JSON.stringify(piHoleRecentBlockedData)],
+        [JSON.stringify(laMetricDeviceInfo)],
+        [JSON.stringify(laMetricDeviceInfo2)]
+    );
+    const callbackMock = jest.fn(() => {});
+    const flushPromises = () => new Promise(setImmediate);
+
+    updateLaMetric().then(callbackMock);
+    await flushPromises();
+
+    expect(callbackMock).toBeCalled();
+    fetchMock.dontMock();
+  });
+
   // TODO MMI add tests for
-  // updateLaMetric
   // startUpdateTimer
 
   it("should fetch Json Placeholder via fetchWithAuth", () => {

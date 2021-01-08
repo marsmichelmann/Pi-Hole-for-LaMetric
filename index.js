@@ -82,7 +82,6 @@ let laMetricTest = () => {
         if (isUnauthorized(laMetricDeviceInfo)) {
           reject("Connection to Lametric is unauthorized");
         }
-
         fetchWithAuth(
           `http://${config.LaMetric.IP}:8080/api/v2/device`,
           laMetricAuthKey
@@ -133,16 +132,14 @@ let updateLaMetric = () => {
       let updateSpinner = ora(
         `Connecting to LaMetric @ ${config.LaMetric.IP}...`
       ).start();
-      // TODO MMI move to separate method?
       fetchWithAuth(
         `http://${config.LaMetric.IP}:8080/api/v2/device/apps/com.lametric.58091f88c1c019c8266ccb2ea82e311d`,
         laMetricAuthKey
       )
         .then((laMetricDeviceInfo) => {
           if (isUnauthorized(laMetricDeviceInfo)) {
-            reject("Connection to Lametric is unauthorized");
+            return reject("Connection to Lametric is unauthorized");
           }
-
           fetchWithAuth(
             `http://${config.LaMetric.IP}:8080/api/v2/device`,
             laMetricAuthKey
@@ -239,7 +236,7 @@ let mapToBody = (
 };
 
 // TODO remove me
-main();
+//main();
 
 module.exports = {
   main,
@@ -249,4 +246,5 @@ module.exports = {
   mapKeyValuePairToString,
   piHoleTest,
   laMetricTest,
+  updateLaMetric,
 };
