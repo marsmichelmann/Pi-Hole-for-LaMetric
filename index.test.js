@@ -9,12 +9,17 @@ const { mapKeyValuePairToString } = require("./index");
 const { piHoleErrorResponse } = require("./index.mockdata");
 const { piHoleInvalidResponse } = require("./index.mockdata");
 const { piHoleTest } = require("./index");
-const {piHoleResponse} = require("./index.mockdata");
+const { piHoleResponse } = require("./index.mockdata");
 const { laMetricTest } = require("./index");
 
 describe("testing pi hole for lametric", () => {
+  beforeAll(() => {
+    config.debugMode = true;
+    jest.useFakeTimers();
+  });
+
   it("should fetch Json Placeholder via fetchWithAuth", () => {
-    return fetchWithAuth("https://jsonplaceholder.typicode.com/todos/1").then(
+    fetchWithAuth("https://jsonplaceholder.typicode.com/todos/1").then(
       (data) => {
         expect(data.title).toBe("delectus aut autem");
       }
@@ -23,18 +28,19 @@ describe("testing pi hole for lametric", () => {
 
   it("shouldn't log, when debug mode is disabled", () => {
     config.debugMode = false;
-    const spy = jest.spyOn(console, "log").mockImplementation();
+    const spyConsole = jest.spyOn(console, "log").mockImplementation();
     logIfDebug("test msg");
-    expect(spy).toHaveBeenCalledTimes(0);
-    spy.mockRestore();
+
+    expect(spyConsole).toHaveBeenCalledTimes(0);
+    spyConsole.mockRestore();
   });
 
   it("should log, if debug mode is enabled", () => {
-    config.debugMode = true;
-    const spy = jest.spyOn(console, "log").mockImplementation();
+    const spyConsole = jest.spyOn(console, "log").mockImplementation();
     logIfDebug("test msg");
-    expect(spy).toHaveBeenCalledTimes(1);
-    spy.mockRestore();
+
+    expect(spyConsole).toHaveBeenCalledTimes(1);
+    spyConsole.mockRestore();
   });
 
   it("should map pi hole data", () => {
@@ -43,6 +49,7 @@ describe("testing pi hole for lametric", () => {
       piHoleTopItemsData,
       piHoleRecentBlockedData
     );
+
     expect(body.blockListSize).toBe(piHoleSummaryData.domains_being_blocked);
     expect(body.dnsQueriesToday).toBe(piHoleSummaryData.dns_queries_today);
     expect(body.adsBlockedToday).toBe(piHoleSummaryData.ads_blocked_today);
@@ -75,7 +82,6 @@ describe("testing pi hole for lametric", () => {
   it("should exit program, when init of pi hole leads to error response", async () => {
     fetchMock.doMock();
     fetchMock.mockReject(piHoleErrorResponse);
-    config.debugMode = true;
     const spyConsole = jest.spyOn(console, "log").mockImplementation();
     const spyProcessExit = jest
       .spyOn(process, "exit")
@@ -108,30 +114,21 @@ describe("testing pi hole for lametric", () => {
     fetchMock.dontMock();
   });
 
-  it("should not exit program, when init of pi hole is successful", async () => {
-    config.PiHole.IP = "127.0.0.1";
-    config.PiHole.AuthKey = "4711";
-    jest.useFakeTimers();
-
+  it("should call callback function, when init of pi hole is successful", async () => {
     fetchMock.doMock();
-    // fetchMock.mockIf(/^http:\/\/127.0.0.1\/admin*$/, req => {
-    //   return
-    //     JSON.stringify(piHoleResponse);
-    //
-    //   //return JSON.stringify(piHoleResponse);
-    // });
-
     fetchMock.mockResponse(JSON.stringify(piHoleResponse));
 
+    const callbackMock = jest.fn(() => {});
     const spyProcessExit = jest
-        .spyOn(process, "exit")
-        .mockImplementation(() => {});
+      .spyOn(process, "exit")
+      .mockImplementation(() => {});
     const flushPromises = () => new Promise(setImmediate);
 
-    piHoleTest(() => {});
+    piHoleTest(callbackMock);
     await flushPromises();
 
     expect(spyProcessExit).not.toBeCalled();
+    expect(callbackMock).toBeCalled();
     spyProcessExit.mockRestore();
     fetchMock.dontMock();
   });

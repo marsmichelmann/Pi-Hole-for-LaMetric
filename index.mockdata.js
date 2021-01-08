@@ -73,6 +73,24 @@ let piHoleInvalidResponse = {
   }
 };
 
+let piHoleResponse = {
+  "querytypes": {
+    "A (IPv4)": 11111,
+    "AAAA (IPv6)": 38.46,
+    "ANY": 0,
+    "SRV": 0.03,
+    "SOA": 0.01,
+    "PTR": 1.07,
+    "TXT": 0.03,
+    "NAPTR": 0,
+    "MX": 0,
+    "DS": 0,
+    "RRSIG": 0,
+    "DNSKEY": 0,
+    "OTHER": 5.89
+  }
+};
+
 let piHoleErrorResponse = {
   "message": "request to http://localhost/admin/api.php?getQueryTypes&auth=7f47df1359d0453d67b647e24e1c88666d3e8ff7ffd9972fc8ae99923e5f7ac5 failed, reason: connect ECONNREFUSED 127.0.0.1:80",
   "type": "system",
@@ -87,3 +105,4 @@ exports.piHoleRecentBlockedData = piHoleRecentBlockedData;
 
 exports.piHoleInvalidResponse = piHoleInvalidResponse;
 exports.piHoleErrorResponse = piHoleErrorResponse;
+exports.piHoleResponse = piHoleResponse;
