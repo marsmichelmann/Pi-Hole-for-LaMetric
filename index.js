@@ -49,85 +49,114 @@ function mapToBody(
   };
 }
 
+/**
+ * Collects data from pi hole, combines it and sends the result to lametric instance.  In case everything works fine a resolved promise is returned, otherwise a rejected promise.
+ */
 let updateLaMetric = () => {
-  // request data from pi hole and combine it
-  let piHoleCalls = [
-    fetch(
-      `http://${config.PiHole.IP}/admin/api.php?summary&auth=${config.PiHole.AuthKey}`
-    ).then((res) => res.json()),
-    fetch(
-      `http://${config.PiHole.IP}/admin/api.php?topItems&auth=${config.PiHole.AuthKey}`
-    ).then((res) => res.json()),
-    fetch(
-      `http://${config.PiHole.IP}/admin/api.php?recentBlocked&auth=${config.PiHole.AuthKey}`
-    ).then((res) => res.text()),
-  ];
-  Promise.all(piHoleCalls).then(function ([
-    piHoleSummaryData,
-    piHoleTopItemsData,
-    piHoleRecentBlockedData,
-  ]) {
-    let body = mapToBody(
+  return new Promise((resolve, reject) => {
+    // request data from pi hole and combine it
+    let piHoleCalls = [
+      fetch(
+        `http://${config.PiHole.IP}/admin/api.php?summary&auth=${config.PiHole.AuthKey}`
+      ).then((res) => res.json()),
+      fetch(
+        `http://${config.PiHole.IP}/admin/api.php?topItems&auth=${config.PiHole.AuthKey}`
+      ).then((res) => res.json()),
+      fetch(
+        `http://${config.PiHole.IP}/admin/api.php?recentBlocked&auth=${config.PiHole.AuthKey}`
+      ).then((res) => res.text()),
+    ];
+    Promise.all(piHoleCalls).then(function ([
       piHoleSummaryData,
       piHoleTopItemsData,
-      piHoleRecentBlockedData
-    );
+      piHoleRecentBlockedData,
+    ]) {
+      let body = mapToBody(
+        piHoleSummaryData,
+        piHoleTopItemsData,
+        piHoleRecentBlockedData
+      );
 
-    let updateSpinner = ora(
-      `Connecting to LaMetric @ ${config.LaMetric.IP}...`
-    ).start();
-    fetchWithAuth(
-      `http://${config.LaMetric.IP}:8080/api/v2/device/apps/com.lametric.58091f88c1c019c8266ccb2ea82e311d`,
-      laMetricAuthKey
-    )
-      .then(() => {
-        fetchWithAuth(
-          `http://${config.LaMetric.IP}:8080/api/v2/device`,
-          laMetricAuthKey
-        ).then((laMetricDeviceInfo2) => {
-          updateSpinner.text = `Sending update for "${laMetricDeviceInfo2.name}" @ ${config.LaMetric.IP} to the server...`;
-          fetch(`https://lametric.iderp.io/pihole/${laMetricDeviceInfo2.id}`, {
-            method: "POST",
-            body: body,
-          }).then(() => {
-            updateSpinner.succeed(
-              `Sent update for "${laMetricDeviceInfo2.name}" @ ${
-                config.LaMetric.IP
-              } to the server (sent data: "${JSON.stringify(body, null, 2)}")!`
-            );
+      let updateSpinner = ora(
+        `Connecting to LaMetric @ ${config.LaMetric.IP}...`
+      ).start();
+      fetchWithAuth(
+        `http://${config.LaMetric.IP}:8080/api/v2/device/apps/com.lametric.58091f88c1c019c8266ccb2ea82e311d`,
+        laMetricAuthKey
+      )
+        .then(() => {
+          fetchWithAuth(
+            `http://${config.LaMetric.IP}:8080/api/v2/device`,
+            laMetricAuthKey
+          ).then((laMetricDeviceInfo2) => {
+            updateSpinner.text = `Sending update for "${laMetricDeviceInfo2.name}" @ ${config.LaMetric.IP} to the server...`;
+            fetch(
+              `https://lametric.iderp.io/pihole/${laMetricDeviceInfo2.id}`,
+              {
+                method: "POST",
+                body: body,
+              }
+            ).then(() => {
+              updateSpinner.succeed(
+                `Sent update for "${laMetricDeviceInfo2.name}" @ ${
+                  config.LaMetric.IP
+                } to the server (sent data: "${JSON.stringify(
+                  body,
+                  null,
+                  2
+                )}")!`
+              );
+              return resolve();
+            });
           });
-        });
-      })
-      .catch((err) => {
-        logIfDebug(err);
-        if (err.statusCode != null && err.body.errors != null) {
-          if (err.statusCode === 401) {
-            updateSpinner.fail(
-              `Update failed to send for LaMetric @ ${config.LaMetric.IP}. Auth invalid.`
-            );
-          } else if (err.statusCode === 404) {
-            updateSpinner.fail(
-              `Update failed to send for LaMetric @ ${config.LaMetric.IP}. Pi-Hole Status app not installed on the LaMetric.`
-            );
+        })
+        .catch((err) => {
+          logIfDebug(err);
+          if (err.statusCode != null && err.body.errors != null) {
+            if (err.statusCode === 401) {
+              updateSpinner.fail(
+                `Update failed to send for LaMetric @ ${config.LaMetric.IP}. Auth invalid.`
+              );
+            } else if (err.statusCode === 404) {
+              updateSpinner.fail(
+                `Update failed to send for LaMetric @ ${config.LaMetric.IP}. Pi-Hole Status app not installed on the LaMetric.`
+              );
+            } else {
+              updateSpinner.fail(
+                `Update failed to send for LaMetric @ ${config.LaMetric.IP}. LaMetric does not seem to linked to this IP.`
+              );
+            }
           } else {
             updateSpinner.fail(
               `Update failed to send for LaMetric @ ${config.LaMetric.IP}. LaMetric does not seem to linked to this IP.`
             );
           }
-        } else {
-          updateSpinner.fail(
-            `Update failed to send for LaMetric @ ${config.LaMetric.IP}. LaMetric does not seem to linked to this IP.`
-          );
-        }
-      });
+          return reject();
+        });
+    });
   });
 };
 
+/**
+ * Starts interval timer for period update based on the config.
+ */
+let startUpdateTimer = () => {
+  setInterval(() => {
+    updateLaMetric();
+  }, config.updateInterval * 1000);
+  return new Promise((resolve) => {
+    resolve();
+  });
+};
+
+/**
+ * Checks if connection to lametric can be established. In case everything works fine a resolved promise is returned, otherwise a rejected promise.
+ */
 let laMetricTest = () => {
-  if (init === false) {
-    spinner = ora(
-      `Testing Connection to LaMetric @ ${config.LaMetric.IP}...`
-    ).start();
+  let spinner = ora(
+    `Testing Connection to LaMetric @ ${config.LaMetric.IP}...`
+  ).start();
+  return new Promise((resolve, reject) => {
     fetchWithAuth(
       `http://${config.LaMetric.IP}:8080/api/v2/device/apps/com.lametric.58091f88c1c019c8266ccb2ea82e311d`,
       laMetricAuthKey
@@ -140,8 +169,7 @@ let laMetricTest = () => {
           spinner.succeed(
             `Connected to "${laMetricDeviceInfo2.name}" @ ${config.LaMetric.IP} running OS v${laMetricDeviceInfo2.os_version} & Pi-Hole Status v${laMetricDeviceInfo.version}! (${laMetricDeviceInfo2.serial_number})`
           );
-          init = true;
-          laMetricTest();
+          return resolve();
         });
       })
       .catch((err) => {
@@ -165,14 +193,9 @@ let laMetricTest = () => {
             `Connection to LaMetric @ ${config.LaMetric.IP} Failed. LaMetric does not seem to linked to this IP.`
           );
         }
-        laMetricTest();
+        return reject();
       });
-  } else {
-    setInterval(() => {
-      updateLaMetric();
-    }, config.updateInterval * 1000);
-    updateLaMetric();
-  }
+  });
 };
 
 /**
@@ -212,11 +235,20 @@ let piHoleTest = () => {
 
 // define functions END
 
-// main program START
+piHoleTest()
+  .then(laMetricTest)
+  // send initial update
+  .then(updateLaMetric)
+  .then(startUpdateTimer)
+  .then(() => {
+    console.log("bla");
+  });
 
-piHoleTest().then(() => {
-  laMetricTest();
-});
+// } else {
+//   startUpdateTimer();
+//   updateLaMetric();
+// }
+// };
 
 // main program END
 exports.fetchWithAuth = fetchWithAuth;
