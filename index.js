@@ -1,53 +1,106 @@
 const config = require(`./config.json`);
 const fetch = require("node-fetch");
 const ora = require("ora");
-let init = false;
 let laMetricAuthKey = `Basic ${Buffer.from(
   `dev:${config.LaMetric.AuthKey}`
 ).toString("base64")}`;
 
-// define functions START
-
-function logIfDebug(msg) {
-  if (config.debugMode) {
-    console.log(msg);
-  }
-}
-
-function fetchWithAuth(url, auth) {
-  return fetch(url, {
-    method: "GET",
-    headers: { Authorization: auth },
-  }).then((res) => res.json());
-}
+/**
+ * Main program.
+ *
+ */
+let main = () => {
+  piHoleTest()
+    .then(laMetricTest)
+    // send initial update
+    .then(updateLaMetric)
+    .then(startUpdateTimer)
+    .catch((err) => {
+      logIfDebug(err);
+    });
+};
 
 /**
- * Maps the given index of the given map to human readable string.
- * @param map of data.
- * @param index the desired index.
+ * Checks if connection to pi hole can be established. In case everything works fine a resolved promise is returned, otherwise a rejected promise.
  */
-function mapKeyValuePairToString(data, index) {
-  let keys = Object.keys(data);
-  let values = Object.values(data);
-  return `${keys[index].toString()} (${values[index].toString()} Queries)`;
-}
+let piHoleTest = () => {
+  logIfDebug("Debug Mode Enabled");
+  console.log(`Starting Pi-Hole for LaMetric ${config.version}...`);
+  let spinner = ora(
+    `Testing Pi-Hole Connection @ ${config.PiHole.IP}...`
+  ).start();
+  return fetch(
+    `http://${config.PiHole.IP}/admin/api.php?getQueryTypes&auth=${config.PiHole.AuthKey}`
+  )
+    .then((res) => res.json())
+    .then((piHoleRes) => {
+      spinner.succeed(`Pi-Hole Connection @ ${config.PiHole.IP} Successful!`);
+      spinner = ora(`Testing Pi-Hole Auth...`).start();
+      if (piHoleRes.querytypes != null) {
+        spinner.succeed(`Pi-Hole Auth Valid!`);
+        return Promise.resolve();
+      } else {
+        spinner.fail(
+          "Pi-Hole Auth Invalid! Make sure the supplied key is correct."
+        );
+        return Promise.reject();
+      }
+    })
+    .catch((err) => {
+      spinner.fail(
+        "Unable to connect to Pi-Hole via the supplied IP. Make sure that the IP is correct."
+      );
+      return Promise.reject(err);
+    });
+};
 
-function mapToBody(
-  piHoleSummaryData,
-  piHoleTopItemsData,
-  piHoleRecentBlockedData
-) {
-  return {
-    blockListSize: piHoleSummaryData.domains_being_blocked,
-    dnsQueriesToday: piHoleSummaryData.dns_queries_today,
-    adsBlockedToday: piHoleSummaryData.ads_blocked_today,
-    totalClientsSeen: piHoleSummaryData.clients_ever_seen,
-    totalDNSQueries: piHoleSummaryData.dns_queries_all_types,
-    topQuery: mapKeyValuePairToString(piHoleTopItemsData.top_queries, 0),
-    topBlockedQuery: mapKeyValuePairToString(piHoleTopItemsData.top_ads, 0),
-    lastBlockedQuery: piHoleRecentBlockedData,
-  };
-}
+/**
+ * Checks if connection to lametric can be established. In case everything works fine a resolved promise is returned, otherwise a rejected promise.
+ */
+let laMetricTest = () => {
+  let spinner = ora(
+    `Testing Connection to LaMetric @ ${config.LaMetric.IP}...`
+  ).start();
+  return new Promise((resolve, reject) => {
+    fetchWithAuth(
+      `http://${config.LaMetric.IP}:8080/api/v2/device/apps/com.lametric.58091f88c1c019c8266ccb2ea82e311d`,
+      laMetricAuthKey
+    )
+      .then((laMetricDeviceInfo) => {
+        fetchWithAuth(
+          `http://${config.LaMetric.IP}:8080/api/v2/device`,
+          laMetricAuthKey
+        ).then((laMetricDeviceInfo2) => {
+          spinner.succeed(
+            `Connected to "${laMetricDeviceInfo2.name}" @ ${config.LaMetric.IP} running OS v${laMetricDeviceInfo2.os_version} & Pi-Hole Status v${laMetricDeviceInfo.version}! (${laMetricDeviceInfo2.serial_number})`
+          );
+          return resolve();
+        });
+      })
+      .catch((err) => {
+        if (err.statusCode != null && err.body.errors != null) {
+          if (err.statusCode === 401) {
+            spinner.fail(
+              `Connection to LaMetric @ ${config.LaMetric.IP} Failed. Auth invalid.`
+            );
+          } else if (err.statusCode === 404) {
+            spinner.fail(
+              `Connection to LaMetric @ ${config.LaMetric.IP} Failed. Pi-Hole Status app not installed on the LaMetric.`
+            );
+          } else {
+            spinner.fail(
+              `Connection to LaMetric @ ${config.LaMetric.IP} Failed. LaMetric does not seem to linked to this IP.`
+            );
+          }
+        } else {
+          spinner.fail(
+            `Connection to LaMetric @ ${config.LaMetric.IP} Failed. LaMetric does not seem to linked to this IP.`
+          );
+        }
+        return reject(err);
+      });
+  });
+};
 
 /**
  * Collects data from pi hole, combines it and sends the result to lametric instance.  In case everything works fine a resolved promise is returned, otherwise a rejected promise.
@@ -80,6 +133,7 @@ let updateLaMetric = () => {
       let updateSpinner = ora(
         `Connecting to LaMetric @ ${config.LaMetric.IP}...`
       ).start();
+      // TODO MMI move to separate method?
       fetchWithAuth(
         `http://${config.LaMetric.IP}:8080/api/v2/device/apps/com.lametric.58091f88c1c019c8266ccb2ea82e311d`,
         laMetricAuthKey
@@ -145,104 +199,47 @@ let startUpdateTimer = () => {
   }, config.updateInterval * 1000);
 };
 
-/**
- * Checks if connection to lametric can be established. In case everything works fine a resolved promise is returned, otherwise a rejected promise.
- */
-let laMetricTest = () => {
-  let spinner = ora(
-    `Testing Connection to LaMetric @ ${config.LaMetric.IP}...`
-  ).start();
-  return new Promise((resolve, reject) => {
-    fetchWithAuth(
-      `http://${config.LaMetric.IP}:8080/api/v2/device/apps/com.lametric.58091f88c1c019c8266ccb2ea82e311d`,
-      laMetricAuthKey
-    )
-      .then((laMetricDeviceInfo) => {
-        fetchWithAuth(
-          `http://${config.LaMetric.IP}:8080/api/v2/device`,
-          laMetricAuthKey
-        ).then((laMetricDeviceInfo2) => {
-          spinner.succeed(
-            `Connected to "${laMetricDeviceInfo2.name}" @ ${config.LaMetric.IP} running OS v${laMetricDeviceInfo2.os_version} & Pi-Hole Status v${laMetricDeviceInfo.version}! (${laMetricDeviceInfo2.serial_number})`
-          );
-          return resolve();
-        });
-      })
-      .catch((err) => {
-        if (err.statusCode != null && err.body.errors != null) {
-          if (err.statusCode === 401) {
-            spinner.fail(
-              `Connection to LaMetric @ ${config.LaMetric.IP} Failed. Auth invalid.`
-            );
-          } else if (err.statusCode === 404) {
-            spinner.fail(
-              `Connection to LaMetric @ ${config.LaMetric.IP} Failed. Pi-Hole Status app not installed on the LaMetric.`
-            );
-          } else {
-            spinner.fail(
-              `Connection to LaMetric @ ${config.LaMetric.IP} Failed. LaMetric does not seem to linked to this IP.`
-            );
-          }
-        } else {
-          spinner.fail(
-            `Connection to LaMetric @ ${config.LaMetric.IP} Failed. LaMetric does not seem to linked to this IP.`
-          );
-        }
-        return reject(err);
-      });
-  });
+let logIfDebug = (msg) => {
+  if (config.debugMode) {
+    console.log(msg);
+  }
+};
+
+let fetchWithAuth = (url, auth) => {
+  return fetch(url, {
+    method: "GET",
+    headers: { Authorization: auth },
+  }).then((res) => res.json());
 };
 
 /**
- * Checks if connection to pi hole can be established. In case everything works fine a resolved promise is returned, otherwise a rejected promise.
+ * Maps the given index of the given map to human readable string.
+ * @param map of data.
+ * @param index the desired index.
  */
-let piHoleTest = () => {
-  logIfDebug("Debug Mode Enabled");
-  console.log(`Starting Pi-Hole for LaMetric ${config.version}...`);
-  let spinner = ora(
-    `Testing Pi-Hole Connection @ ${config.PiHole.IP}...`
-  ).start();
-  return fetch(
-    `http://${config.PiHole.IP}/admin/api.php?getQueryTypes&auth=${config.PiHole.AuthKey}`
-  )
-    .then((res) => res.json())
-    .then((piHoleRes) => {
-      spinner.succeed(`Pi-Hole Connection @ ${config.PiHole.IP} Successful!`);
-      spinner = ora(`Testing Pi-Hole Auth...`).start();
-      if (piHoleRes.querytypes != null) {
-        spinner.succeed(`Pi-Hole Auth Valid!`);
-        return Promise.resolve();
-      } else {
-        spinner.fail(
-          "Pi-Hole Auth Invalid! Make sure the supplied key is correct."
-        );
-        return Promise.reject();
-      }
-    })
-    .catch((err) => {
-      spinner.fail(
-        "Unable to connect to Pi-Hole via the supplied IP. Make sure that the IP is correct."
-      );
-      return Promise.reject(err);
-    });
+let mapKeyValuePairToString = (data, index) => {
+  let keys = Object.keys(data);
+  let values = Object.values(data);
+  return `${keys[index].toString()} (${values[index].toString()} Queries)`;
 };
 
-/**
- * Main program.
- *
- */
-let main = () => {
-  piHoleTest()
-    .then(laMetricTest)
-    // send initial update
-    .then(updateLaMetric)
-    .then(startUpdateTimer)
-    .catch((err) => {
-      logIfDebug(err);
-    });
+let mapToBody = (
+  piHoleSummaryData,
+  piHoleTopItemsData,
+  piHoleRecentBlockedData
+) => {
+  return {
+    blockListSize: piHoleSummaryData.domains_being_blocked,
+    dnsQueriesToday: piHoleSummaryData.dns_queries_today,
+    adsBlockedToday: piHoleSummaryData.ads_blocked_today,
+    totalClientsSeen: piHoleSummaryData.clients_ever_seen,
+    totalDNSQueries: piHoleSummaryData.dns_queries_all_types,
+    topQuery: mapKeyValuePairToString(piHoleTopItemsData.top_queries, 0),
+    topBlockedQuery: mapKeyValuePairToString(piHoleTopItemsData.top_ads, 0),
+    lastBlockedQuery: piHoleRecentBlockedData,
+  };
 };
 
-// define functions END
 module.exports = {
   main,
   fetchWithAuth,

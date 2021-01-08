@@ -19,6 +19,67 @@ describe("testing pi hole for lametric", () => {
     jest.useFakeTimers();
   });
 
+  // // TODO MMI
+  // it("should work integatively", async () => {
+  //   fetchMock.doMock();
+  //   fetchMock.mockReject(piHoleErrorResponse);
+  //   const spyConsole = jest.spyOn(console, "log").mockImplementation();
+  //   const callbackMock = jest.fn(() => {});
+  //   const flushPromises = () => new Promise(setImmediate);
+  //
+  //   main();
+  //   //await flushPromises();
+  //
+  //   //expect(spyConsole).toBeCalledWith(piHoleErrorResponse);
+  //   //expect(callbackMock).toBeCalled();
+  //   spyConsole.mockRestore();
+  //   fetchMock.dontMock();
+  // });
+
+  it("should call catch callback function, when init of pi hole leads to error response", async () => {
+    fetchMock.doMock();
+    fetchMock.mockReject(piHoleErrorResponse);
+    const callbackMock = jest.fn(() => {});
+    const flushPromises = () => new Promise(setImmediate);
+
+    piHoleTest().catch(callbackMock);
+    await flushPromises();
+
+    expect(callbackMock).toBeCalled();
+    fetchMock.dontMock();
+  });
+
+  it("should call catch callback function, when init of pi hole leads to unexpected response", async () => {
+    fetchMock.doMock();
+    fetchMock.mockResponse(JSON.stringify(piHoleInvalidResponse));
+    const callbackMock = jest.fn(() => {});
+    const flushPromises = () => new Promise(setImmediate);
+
+    piHoleTest().catch(callbackMock);
+    await flushPromises();
+
+    expect(callbackMock).toBeCalled();
+    fetchMock.dontMock();
+  });
+
+  it("should then call callback function, when init of pi hole is successful", async () => {
+    fetchMock.doMock();
+    fetchMock.mockResponse(JSON.stringify(piHoleResponse));
+    const callbackMock = jest.fn(() => {});
+    const flushPromises = () => new Promise(setImmediate);
+
+    piHoleTest().then(callbackMock);
+    await flushPromises();
+
+    expect(callbackMock).toBeCalled();
+    fetchMock.dontMock();
+  });
+
+  // TODO MMI add tests for
+  // laMetricTest
+  // updateLaMetric
+  // startUpdateTimer
+
   it("should fetch Json Placeholder via fetchWithAuth", () => {
     fetchWithAuth("https://jsonplaceholder.typicode.com/todos/1").then(
       (data) => {
@@ -80,64 +141,4 @@ describe("testing pi hole for lametric", () => {
     );
   });
 
-  it("should call catch callback function, when init of pi hole leads to error response", async () => {
-    fetchMock.doMock();
-    fetchMock.mockReject(piHoleErrorResponse);
-    const callbackMock = jest.fn(() => {});
-    const flushPromises = () => new Promise(setImmediate);
-
-    piHoleTest().catch(callbackMock);
-    await flushPromises();
-
-    expect(callbackMock).toBeCalled();
-    fetchMock.dontMock();
-  });
-
-  it("should call catch callback function, when init of pi hole leads to unexpected response", async () => {
-    fetchMock.doMock();
-    fetchMock.mockResponse(JSON.stringify(piHoleInvalidResponse));
-    const callbackMock = jest.fn(() => {});
-    const flushPromises = () => new Promise(setImmediate);
-
-    piHoleTest().catch(callbackMock);
-    await flushPromises();
-
-    expect(callbackMock).toBeCalled();
-    fetchMock.dontMock();
-  });
-
-  it("should then call callback function, when init of pi hole is successful", async () => {
-    fetchMock.doMock();
-    fetchMock.mockResponse(JSON.stringify(piHoleResponse));
-    const callbackMock = jest.fn(() => {});
-    const flushPromises = () => new Promise(setImmediate);
-
-    piHoleTest().then(callbackMock);
-    await flushPromises();
-
-    expect(callbackMock).toBeCalled();
-    fetchMock.dontMock();
-  });
-
-  // TODO MMI add tests for
-  // laMetricTest
-  // updateLaMetric
-  // startUpdateTimer
-
-  // // TODO MMI
-  // it("should work integatively", async () => {
-  //   fetchMock.doMock();
-  //   fetchMock.mockReject(piHoleErrorResponse);
-  //   const spyConsole = jest.spyOn(console, "log").mockImplementation();
-  //   const callbackMock = jest.fn(() => {});
-  //   const flushPromises = () => new Promise(setImmediate);
-  //
-  //   main();
-  //   //await flushPromises();
-  //
-  //   //expect(spyConsole).toBeCalledWith(piHoleErrorResponse);
-  //   //expect(callbackMock).toBeCalled();
-  //   spyConsole.mockRestore();
-  //   fetchMock.dontMock();
-  // });
 });
