@@ -135,10 +135,14 @@ let updateLaMetric = () => {
       ).start();
       // TODO MMI move to separate method?
       fetchWithAuth(
-        `http://127.0.0.1:8080/api/v2/device/apps/com.lametric.58091f88c1c019c8266ccb2ea82e311d`,
+        `http://${config.LaMetric.IP}:8080/api/v2/device/apps/com.lametric.58091f88c1c019c8266ccb2ea82e311d`,
         laMetricAuthKey
       )
-        .then(() => {
+        .then((laMetricDeviceInfo) => {
+          if (isUnauthorized(laMetricDeviceInfo)) {
+            reject("Connection to Lametric is unauthorized");
+          }
+
           fetchWithAuth(
             `http://${config.LaMetric.IP}:8080/api/v2/device`,
             laMetricAuthKey
@@ -165,25 +169,9 @@ let updateLaMetric = () => {
           });
         })
         .catch((err) => {
-          if (err.statusCode != null && err.body.errors != null) {
-            if (err.statusCode === 401) {
-              updateSpinner.fail(
-                `Update failed to send for LaMetric @ ${config.LaMetric.IP}. Auth invalid.`
-              );
-            } else if (err.statusCode === 404) {
-              updateSpinner.fail(
-                `Update failed to send for LaMetric @ ${config.LaMetric.IP}. Pi-Hole Status app not installed on the LaMetric.`
-              );
-            } else {
-              updateSpinner.fail(
-                `Update failed to send for LaMetric @ ${config.LaMetric.IP}. LaMetric does not seem to linked to this IP.`
-              );
-            }
-          } else {
-            updateSpinner.fail(
-              `Update failed to send for LaMetric @ ${config.LaMetric.IP}. LaMetric does not seem to linked to this IP.`
-            );
-          }
+          updateSpinner.fail(
+            `Update failed to send for LaMetric @ ${config.LaMetric.IP}. LaMetric does not seem to linked to this IP.`
+          );
           return reject(err);
         });
     });
@@ -251,7 +239,7 @@ let mapToBody = (
 };
 
 // TODO remove me
-//main();
+main();
 
 module.exports = {
   main,
