@@ -5,8 +5,7 @@
     "main": "index.js",
     "scripts": {
         "test": "jest",
-        "main": "run-func index.js main",
-        "main-unix": "run-func /home/pi/Pi-Hole-for/LaMetric/index.js main"
+        "main": "run-func index.js main"
     },
     "author": "Markus Michel",
     "license": "ISC",

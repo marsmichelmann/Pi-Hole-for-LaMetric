@@ -236,6 +236,9 @@ let mapToBody = (
   };
 };
 
+// call main program directly
+main();
+
 module.exports = {
   main,
   fetchWithAuth,
