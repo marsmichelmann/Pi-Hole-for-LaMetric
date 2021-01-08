@@ -55,6 +55,18 @@ let piHoleTest = () => {
 };
 
 /**
+ * Checks if we have a unauthorized connection to lametric.
+ * @param response the response to check.
+ */
+let isUnauthorized = (response) => {
+  return (
+    response.errors &&
+    response.errors[0].message &&
+    response.errors[0].message == "Authorization is required"
+  );
+};
+
+/**
  * Checks if connection to lametric can be established. In case everything works fine a resolved promise is returned, otherwise a rejected promise.
  */
 let laMetricTest = () => {
@@ -67,6 +79,10 @@ let laMetricTest = () => {
       laMetricAuthKey
     )
       .then((laMetricDeviceInfo) => {
+        if (isUnauthorized(laMetricDeviceInfo)) {
+          reject("Connection to Lametric is unauthorized");
+        }
+
         fetchWithAuth(
           `http://${config.LaMetric.IP}:8080/api/v2/device`,
           laMetricAuthKey
@@ -78,25 +94,9 @@ let laMetricTest = () => {
         });
       })
       .catch((err) => {
-        if (err.statusCode != null && err.body.errors != null) {
-          if (err.statusCode === 401) {
-            spinner.fail(
-              `Connection to LaMetric @ ${config.LaMetric.IP} Failed. Auth invalid.`
-            );
-          } else if (err.statusCode === 404) {
-            spinner.fail(
-              `Connection to LaMetric @ ${config.LaMetric.IP} Failed. Pi-Hole Status app not installed on the LaMetric.`
-            );
-          } else {
-            spinner.fail(
-              `Connection to LaMetric @ ${config.LaMetric.IP} Failed. LaMetric does not seem to linked to this IP.`
-            );
-          }
-        } else {
-          spinner.fail(
-            `Connection to LaMetric @ ${config.LaMetric.IP} Failed. LaMetric does not seem to linked to this IP.`
-          );
-        }
+        spinner.fail(
+          `Connection to LaMetric @ ${config.LaMetric.IP} Failed. LaMetric does not seem to linked to this IP.`
+        );
         return reject(err);
       });
   });
@@ -239,6 +239,9 @@ let mapToBody = (
     lastBlockedQuery: piHoleRecentBlockedData,
   };
 };
+
+// TODO remove me
+//main();
 
 module.exports = {
   main,

@@ -12,6 +12,10 @@ const { piHoleTest } = require("./index");
 const { piHoleResponse } = require("./index.mockdata");
 const { laMetricTest } = require("./index");
 const { main } = require("./index");
+const { lametricNotFoundErrorResponse } = require("./index.mockdata");
+const { lametricUnauthorizedResponse } = require("./index.mockdata");
+const { laMetricDeviceInfo } = require("./index.mockdata");
+const { laMetricDeviceInfo2 } = require("./index.mockdata");
 
 describe("testing pi hole for lametric", () => {
   beforeEach(() => {
@@ -21,8 +25,8 @@ describe("testing pi hole for lametric", () => {
 
   // // TODO MMI
   // it("should work integatively", async () => {
-  //   fetchMock.doMock();
-  //   fetchMock.mockReject(piHoleErrorResponse);
+  //   //fetchMock.doMock();
+  //   //fetchMock.mockReject(piHoleErrorResponse);
   //   const spyConsole = jest.spyOn(console, "log").mockImplementation();
   //   const callbackMock = jest.fn(() => {});
   //   const flushPromises = () => new Promise(setImmediate);
@@ -33,7 +37,7 @@ describe("testing pi hole for lametric", () => {
   //   //expect(spyConsole).toBeCalledWith(piHoleErrorResponse);
   //   //expect(callbackMock).toBeCalled();
   //   spyConsole.mockRestore();
-  //   fetchMock.dontMock();
+  //   //fetchMock.dontMock();
   // });
 
   it("should call catch callback function, when init of pi hole leads to error response", async () => {
@@ -75,8 +79,49 @@ describe("testing pi hole for lametric", () => {
     fetchMock.dontMock();
   });
 
+  it("should call catch callback function, when init of lametric leads to error response", async () => {
+    fetchMock.doMock();
+    fetchMock.mockReject(JSON.stringify(lametricNotFoundErrorResponse));
+    const callbackMock = jest.fn(() => {});
+    const flushPromises = () => new Promise(setImmediate);
+
+    laMetricTest().catch(callbackMock);
+    await flushPromises();
+
+    expect(callbackMock).toBeCalled();
+    fetchMock.dontMock();
+  });
+
+  it("should call catch callback function, when connection to found lametric is unauthorized", async () => {
+    fetchMock.doMock();
+    fetchMock.mockResponse(JSON.stringify(lametricUnauthorizedResponse));
+    const callbackMock = jest.fn(() => {});
+    const flushPromises = () => new Promise(setImmediate);
+
+    laMetricTest().catch(callbackMock);
+    await flushPromises();
+
+    expect(callbackMock).toBeCalled();
+    fetchMock.dontMock();
+  });
+
+  it("should call callback function, when init of lametric is successful", async () => {
+    fetchMock.doMock();
+    fetchMock.mockResponses(
+      [JSON.stringify(laMetricDeviceInfo)],
+      [JSON.stringify(laMetricDeviceInfo2)]
+    );
+    const callbackMock = jest.fn(() => {});
+    const flushPromises = () => new Promise(setImmediate);
+
+    laMetricTest().then(callbackMock);
+    await flushPromises();
+
+    expect(callbackMock).toBeCalled();
+    fetchMock.dontMock();
+  });
+
   // TODO MMI add tests for
-  // laMetricTest
   // updateLaMetric
   // startUpdateTimer
 
@@ -140,5 +185,4 @@ describe("testing pi hole for lametric", () => {
       "ichnaea.netflix.com (647 Queries)"
     );
   });
-
 });

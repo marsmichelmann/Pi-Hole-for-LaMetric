@@ -96,13 +96,118 @@ let piHoleErrorResponse = {
   "type": "system",
   "errno": "ECONNREFUSED",
   "code": "ECONNREFUSED"
+};
+
+let lametricNotFoundErrorResponse = {
+  "message": "request to http://127.0.0.1:8080/api/v2/device/apps/com.lametric.58091f88c1c019c8266ccb2ea82e311d failed, reason: connect ECONNREFUSED 127.0.0.1:8080",
+  "type": "system",
+  "errno": "ECONNREFUSED",
+  "code": "ECONNREFUSED"
+};
+
+let lametricUnauthorizedResponse = {
+  "errors": [
+    {
+      "message": "Authorization is required"
+    }
+  ]
+};
+
+let laMetricDeviceInfo = {
+  "package": "com.lametric.58091f88c1c019c8266ccb2ea82e311d",
+  "title": "Pi-Hole Status",
+  "triggers": {},
+  "vendor": "iDerp",
+  "version": "5",
+  "version_code": "5",
+  "widgets": {
+    "bf1a5601a1b54f05ae735183b35dc9e8": {
+      "index": -1,
+      "package": "com.lametric.58091f88c1c019c8266ccb2ea82e311d"
+    }
+  }
+};
+
+let laMetricDeviceInfo2 = {
+  "audio": {
+    "volume": 53,
+    "volume_limit": {
+      "max": 69,
+      "min": 0
+    },
+    "volume_range": {
+      "max": 100,
+      "min": 0
+    }
+  },
+  "bluetooth": {
+    "active": false,
+    "address": "A0:2C:36:83:3A:B1",
+    "available": true,
+    "discoverable": true,
+    "low_energy": {
+      "active": true,
+      "advertising": true,
+      "connectable": true
+    },
+    "name": "LM8525",
+    "pairable": true
+  },
+  "display": {
+    "brightness": 75,
+    "brightness_limit": {
+      "max": 75,
+      "min": 2
+    },
+    "brightness_mode": "auto",
+    "brightness_range": {
+      "max": 100,
+      "min": 0
+    },
+    "height": 8,
+    "screensaver": {
+      "enabled": true,
+      "modes": {
+        "time_based": {
+          "enabled": false
+        },
+        "when_dark": {
+          "enabled": true
+        }
+      },
+      "widget": "08b8eac21074f8f7e5a29f2855ba8060"
+    },
+    "type": "mixed",
+    "width": 37
+  },
+  "id": "13233",
+  "mode": "manual",
+  "model": "LM 37X8",
+  "name": "My LaMetric",
+  "os_version": "2.1.2",
+  "serial_number": "SA170100852500W00BS9",
+  "wifi": {
+    "active": true,
+    "address": "A0:2C:36:83:13:A1",
+    "available": true,
+    "encryption": "WPA",
+    "essid": "FRITZ!Box7580",
+    "ip": "192.168.2.35",
+    "mode": "dhcp",
+    "netmask": "255.255.255.0",
+    "strength": 98
+  }
 }
 
-// main program END
-exports.piHoleSummaryData = piHoleSummaryData;
-exports.piHoleTopItemsData = piHoleTopItemsData;
-exports.piHoleRecentBlockedData = piHoleRecentBlockedData;
-
-exports.piHoleInvalidResponse = piHoleInvalidResponse;
-exports.piHoleErrorResponse = piHoleErrorResponse;
-exports.piHoleResponse = piHoleResponse;
+module.exports = {
+  piHoleSummaryData,
+  piHoleTopItemsData,
+  piHoleRecentBlockedData,
+  piHoleInvalidResponse,
+  piHoleErrorResponse,
+  piHoleResponse,
+  laMetricDeviceInfo,
+  laMetricDeviceInfo2,
+  lametricNotFoundErrorResponse,
+  lametricUnauthorizedResponse,
+};
