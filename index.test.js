@@ -24,22 +24,13 @@ describe("testing pi hole for lametric", () => {
     jest.useFakeTimers();
   });
 
-  // // TODO MMI
-  // it("should work integatively", async () => {
-  //   //fetchMock.doMock();
-  //   //fetchMock.mockReject(piHoleErrorResponse);
-  //   const spyConsole = jest.spyOn(console, "log").mockImplementation();
-  //   const callbackMock = jest.fn(() => {});
-  //   const flushPromises = () => new Promise(setImmediate);
-  //
-  //   main();
-  //   //await flushPromises();
-  //
-  //   //expect(spyConsole).toBeCalledWith(piHoleErrorResponse);
-  //   //expect(callbackMock).toBeCalled();
-  //   spyConsole.mockRestore();
-  //   //fetchMock.dontMock();
-  // });
+  it("should fetch Json Placeholder via fetchWithAuth", () => {
+    return fetchWithAuth("https://jsonplaceholder.typicode.com/todos/1").then(
+      (data) => {
+        expect(data.title).toBe("delectus aut autem");
+      }
+    );
+  });
 
   it("should call catch callback function, when init of pi hole leads to error response", async () => {
     fetchMock.doMock();
@@ -125,9 +116,9 @@ describe("testing pi hole for lametric", () => {
   it("should call catch callback function, when init of lametric on calling updateLaMetric leads to error response", async () => {
     fetchMock.doMock();
     fetchMock.mockResponses(
-        [JSON.stringify(piHoleSummaryData)],
-        [JSON.stringify(piHoleTopItemsData)],
-        [JSON.stringify(piHoleRecentBlockedData)]
+      [JSON.stringify(piHoleSummaryData)],
+      [JSON.stringify(piHoleTopItemsData)],
+      [JSON.stringify(piHoleRecentBlockedData)]
     );
     fetchMock.mockReject(JSON.stringify(lametricNotFoundErrorResponse));
     const callbackMock = jest.fn(() => {});
@@ -143,10 +134,10 @@ describe("testing pi hole for lametric", () => {
   it("should call catch callback function, when connection to found lametric is unauthorized on calling updateLaMetric", async () => {
     fetchMock.doMock();
     fetchMock.mockResponses(
-        [JSON.stringify(piHoleSummaryData)],
-        [JSON.stringify(piHoleTopItemsData)],
-        [JSON.stringify(piHoleRecentBlockedData)],
-        [JSON.stringify(lametricUnauthorizedResponse)]
+      [JSON.stringify(piHoleSummaryData)],
+      [JSON.stringify(piHoleTopItemsData)],
+      [JSON.stringify(piHoleRecentBlockedData)],
+      [JSON.stringify(lametricUnauthorizedResponse)]
     );
     const callbackMock = jest.fn(() => {});
     const flushPromises = () => new Promise(setImmediate);
@@ -161,11 +152,12 @@ describe("testing pi hole for lametric", () => {
   it("should call callback function, when update of lametric is successful", async () => {
     fetchMock.doMock();
     fetchMock.mockResponses(
-        [JSON.stringify(piHoleSummaryData)],
-        [JSON.stringify(piHoleTopItemsData)],
-        [JSON.stringify(piHoleRecentBlockedData)],
-        [JSON.stringify(laMetricDeviceInfo)],
-        [JSON.stringify(laMetricDeviceInfo2)]
+      [JSON.stringify(piHoleSummaryData)],
+      [JSON.stringify(piHoleTopItemsData)],
+      [JSON.stringify(piHoleRecentBlockedData)],
+      [JSON.stringify(laMetricDeviceInfo)],
+      [JSON.stringify(laMetricDeviceInfo2)],
+      [JSON.stringify({})] // post request to lametric.iderp.io
     );
     const callbackMock = jest.fn(() => {});
     const flushPromises = () => new Promise(setImmediate);
@@ -177,15 +169,25 @@ describe("testing pi hole for lametric", () => {
     fetchMock.dontMock();
   });
 
-  // TODO MMI add tests for
-  // startUpdateTimer
-
-  it("should fetch Json Placeholder via fetchWithAuth", () => {
-    fetchWithAuth("https://jsonplaceholder.typicode.com/todos/1").then(
-      (data) => {
-        expect(data.title).toBe("delectus aut autem");
-      }
+  it("should work integrativly with mocks", async () => {
+    fetchMock.doMock();
+    fetchMock.mockResponses(
+        [JSON.stringify(piHoleResponse)], // init pi hole
+        [JSON.stringify(laMetricDeviceInfo)], // init lametric
+        [JSON.stringify(laMetricDeviceInfo2)],
+        [JSON.stringify(piHoleSummaryData)], // update
+        [JSON.stringify(piHoleTopItemsData)],
+        [JSON.stringify(piHoleRecentBlockedData)],
+        [JSON.stringify(laMetricDeviceInfo)],
+        [JSON.stringify(laMetricDeviceInfo2)],
+        [JSON.stringify({})] // post request to lametric.iderp.io
     );
+    const flushPromises = () => new Promise(setImmediate);
+
+    main();
+    await flushPromises();
+
+    fetchMock.dontMock();
   });
 
   it("shouldn't log, when debug mode is disabled", () => {
