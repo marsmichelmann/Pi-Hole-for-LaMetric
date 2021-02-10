@@ -237,7 +237,7 @@ let mapToBody = (
 };
 
 // call main program directly
-main();
+// main();
 
 module.exports = {
   main,
