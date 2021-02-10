@@ -25,6 +25,9 @@ jobs:
       uses: actions/setup-node@v1
       with:
         node-version: ${{ matrix.node-version }}
+    - name: Copy example.config.json to config.json
+      run: |
+        cp example.config.json config.json
     - name: npm install and test
       run: |
         npm install
