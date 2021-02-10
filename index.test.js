@@ -12,14 +12,16 @@ const { laMetricDeviceInfo } = require("./index.mockdata");
 const { laMetricDeviceInfo2 } = require("./index.mockdata");
 
 describe("testing pi hole for lametric", () => {
-  const logIfDebug = require('./index.js').__get__('logIfDebug');
-  const fetchWithAuth = require('./index.js').__get__('fetchWithAuth');
-  const mapToBody = require('./index.js').__get__('mapToBody');
-  const piHoleTest = require('./index.js').__get__('piHoleTest');
-  const mapKeyValuePairToString = require('./index.js').__get__('mapKeyValuePairToString');
-  const laMetricTest = require('./index.js').__get__('laMetricTest');
-  const updateLaMetric = require('./index.js').__get__('updateLaMetric');
-  const startUpdateTimer = require('./index.js').__get__('startUpdateTimer');
+  const logIfDebug = require("./index.js").__get__("logIfDebug");
+  const fetchWithAuth = require("./index.js").__get__("fetchWithAuth");
+  const mapToBody = require("./index.js").__get__("mapToBody");
+  const piHoleTest = require("./index.js").__get__("piHoleTest");
+  const mapKeyValuePairToString = require("./index.js").__get__(
+    "mapKeyValuePairToString"
+  );
+  const laMetricTest = require("./index.js").__get__("laMetricTest");
+  const updateLaMetric = require("./index.js").__get__("updateLaMetric");
+  const startUpdateTimer = require("./index.js").__get__("startUpdateTimer");
 
   beforeEach(() => {
     config.debugMode = true;
@@ -44,7 +46,6 @@ describe("testing pi hole for lametric", () => {
     expect(callbackMock).toBeCalled();
     jest.clearAllTimers();
   });
-
 
   it("should fetch Json Placeholder via fetchWithAuth", () => {
     return fetchWithAuth("https://jsonplaceholder.typicode.com/todos/1").then(
