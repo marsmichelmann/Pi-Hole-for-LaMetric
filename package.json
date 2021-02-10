@@ -4,6 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "start": "node -e \"require('./index').main()\"",
     "test": "jest"
   },
   "author": "Markus Michel",
