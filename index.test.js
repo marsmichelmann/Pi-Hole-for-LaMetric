@@ -1,25 +1,26 @@
-const { fetchWithAuth } = require("./index");
-const { logIfDebug } = require("./index");
 const config = require(`./config.json`);
-const { mapToBody } = require("./index");
 const { piHoleSummaryData } = require("./index.mockdata");
 const { piHoleTopItemsData } = require("./index.mockdata");
 const { piHoleRecentBlockedData } = require("./index.mockdata");
-const { mapKeyValuePairToString } = require("./index");
 const { piHoleErrorResponse } = require("./index.mockdata");
 const { piHoleInvalidResponse } = require("./index.mockdata");
-const { piHoleTest } = require("./index");
 const { piHoleResponse } = require("./index.mockdata");
-const { laMetricTest } = require("./index");
-const { updateLaMetric } = require("./index");
 const { main } = require("./index");
 const { lametricNotFoundErrorResponse } = require("./index.mockdata");
 const { lametricUnauthorizedResponse } = require("./index.mockdata");
 const { laMetricDeviceInfo } = require("./index.mockdata");
 const { laMetricDeviceInfo2 } = require("./index.mockdata");
-const { startUpdateTimer } = require("./index");
 
 describe("testing pi hole for lametric", () => {
+  const logIfDebug = require('./index.js').__get__('logIfDebug');
+  const fetchWithAuth = require('./index.js').__get__('fetchWithAuth');
+  const mapToBody = require('./index.js').__get__('mapToBody');
+  const piHoleTest = require('./index.js').__get__('piHoleTest');
+  const mapKeyValuePairToString = require('./index.js').__get__('mapKeyValuePairToString');
+  const laMetricTest = require('./index.js').__get__('laMetricTest');
+  const updateLaMetric = require('./index.js').__get__('updateLaMetric');
+  const startUpdateTimer = require('./index.js').__get__('startUpdateTimer');
+
   beforeEach(() => {
     config.debugMode = true;
     jest.useFakeTimers();
