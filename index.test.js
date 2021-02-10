@@ -1,4 +1,3 @@
-const config = require(`./config.json`);
 const { piHoleSummaryData } = require("./index.mockdata");
 const { piHoleTopItemsData } = require("./index.mockdata");
 const { piHoleRecentBlockedData } = require("./index.mockdata");
@@ -12,6 +11,8 @@ const { laMetricDeviceInfo } = require("./index.mockdata");
 const { laMetricDeviceInfo2 } = require("./index.mockdata");
 
 describe("testing pi hole for lametric", () => {
+  const config = require(`./config.json`);
+
   const logIfDebug = require("./index.js").__get__("logIfDebug");
   const fetchWithAuth = require("./index.js").__get__("fetchWithAuth");
   const mapToBody = require("./index.js").__get__("mapToBody");
