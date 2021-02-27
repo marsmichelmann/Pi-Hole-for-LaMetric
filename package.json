@@ -5,8 +5,7 @@
   "main": "index.js",
   "scripts": {
     "start": "node -e \"require('./index').main()\"",
-    "test": "jest",
-    "format": "prettier --write ."
+    "test": "jest"
   },
   "author": "Markus Michel",
   "license": "ISC",
