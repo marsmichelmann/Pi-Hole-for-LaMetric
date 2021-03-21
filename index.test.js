@@ -29,8 +29,10 @@ describe("testing pi hole for lametric", () => {
   });
 
   it("should handle interval timer", async () => {
+    // init
     const callbackMock = jest.fn(() => {});
 
+    // run
     startUpdateTimer(callbackMock);
 
     // At this point in time, there should have been a single call to
@@ -48,6 +50,7 @@ describe("testing pi hole for lametric", () => {
   });
 
   it("should fetch Json Placeholder via fetchWithAuth", () => {
+    // run & validation
     return fetchWithAuth("https://jsonplaceholder.typicode.com/todos/1").then(
       (data) => {
         expect(data.title).toBe("delectus aut autem");
@@ -56,71 +59,90 @@ describe("testing pi hole for lametric", () => {
   });
 
   it("should call catch callback function, when init of pi hole leads to error response", async () => {
+    // init
     fetchMock.doMock();
     fetchMock.mockReject(piHoleErrorResponse);
     const callbackMock = jest.fn(() => {});
     const flushPromises = () => new Promise(setImmediate);
+    jest.spyOn(console, "log").mockImplementation(); // ignore logging for unit test
 
+    // run
     piHoleTest().catch(callbackMock);
     await flushPromises();
 
+    // validation
     expect(callbackMock).toBeCalled();
     fetchMock.dontMock();
   });
 
   it("should call catch callback function, when init of pi hole leads to unexpected response", async () => {
+    // init
     fetchMock.doMock();
     fetchMock.mockResponse(JSON.stringify(piHoleInvalidResponse));
     const callbackMock = jest.fn(() => {});
     const flushPromises = () => new Promise(setImmediate);
+    jest.spyOn(console, "log").mockImplementation(); // ignore logging for unit test
 
+    // run
     piHoleTest().catch(callbackMock);
     await flushPromises();
 
+    // validation
     expect(callbackMock).toBeCalled();
     fetchMock.dontMock();
   });
 
   it("should then call callback function, when init of pi hole is successful", async () => {
+    // init
     fetchMock.doMock();
     fetchMock.mockResponse(JSON.stringify(piHoleResponse));
     const callbackMock = jest.fn(() => {});
     const flushPromises = () => new Promise(setImmediate);
+    jest.spyOn(console, "log").mockImplementation(); // ignore logging for unit test
 
+    // run
     piHoleTest().then(callbackMock);
     await flushPromises();
 
+    // validation
     expect(callbackMock).toBeCalled();
     fetchMock.dontMock();
   });
 
   it("should call catch callback function, when init of lametric leads to error response", async () => {
+    // init
     fetchMock.doMock();
     fetchMock.mockReject(JSON.stringify(lametricNotFoundErrorResponse));
     const callbackMock = jest.fn(() => {});
     const flushPromises = () => new Promise(setImmediate);
 
+    // run
     laMetricTest().catch(callbackMock);
     await flushPromises();
 
+    // validation
     expect(callbackMock).toBeCalled();
     fetchMock.dontMock();
   });
 
   it("should call catch callback function, when connection to found lametric is unauthorized", async () => {
+    // init
     fetchMock.doMock();
     fetchMock.mockResponse(JSON.stringify(lametricUnauthorizedResponse));
     const callbackMock = jest.fn(() => {});
     const flushPromises = () => new Promise(setImmediate);
 
+    // run
     laMetricTest().catch(callbackMock);
     await flushPromises();
 
+    // validation
     expect(callbackMock).toBeCalled();
     fetchMock.dontMock();
   });
 
   it("should call callback function, when init of lametric is successful", async () => {
+    // init
     fetchMock.doMock();
     fetchMock.mockResponses(
       [JSON.stringify(laMetricDeviceInfo)],
@@ -129,14 +151,17 @@ describe("testing pi hole for lametric", () => {
     const callbackMock = jest.fn(() => {});
     const flushPromises = () => new Promise(setImmediate);
 
+    // run
     laMetricTest().then(callbackMock);
     await flushPromises();
 
+    // validation
     expect(callbackMock).toBeCalled();
     fetchMock.dontMock();
   });
 
   it("should call catch callback function, when init of lametric on calling updateLaMetric leads to error response", async () => {
+    // init
     fetchMock.doMock();
     fetchMock.mockResponses(
       [JSON.stringify(piHoleSummaryData)],
@@ -147,14 +172,17 @@ describe("testing pi hole for lametric", () => {
     const callbackMock = jest.fn(() => {});
     const flushPromises = () => new Promise(setImmediate);
 
+    // run
     updateLaMetric().catch(callbackMock);
     await flushPromises();
 
+    // validation
     expect(callbackMock).toBeCalled();
     fetchMock.dontMock();
   });
 
   it("should call catch callback function, when connection to found lametric is unauthorized on calling updateLaMetric", async () => {
+    // init
     fetchMock.doMock();
     fetchMock.mockResponses(
       [JSON.stringify(piHoleSummaryData)],
@@ -165,14 +193,17 @@ describe("testing pi hole for lametric", () => {
     const callbackMock = jest.fn(() => {});
     const flushPromises = () => new Promise(setImmediate);
 
+    // run
     updateLaMetric().catch(callbackMock);
     await flushPromises();
 
+    // validation
     expect(callbackMock).toBeCalled();
     fetchMock.dontMock();
   });
 
   it("should call callback function, when update of lametric is successful", async () => {
+    // init
     fetchMock.doMock();
     fetchMock.mockResponses(
       [JSON.stringify(piHoleSummaryData)],
@@ -185,14 +216,17 @@ describe("testing pi hole for lametric", () => {
     const callbackMock = jest.fn(() => {});
     const flushPromises = () => new Promise(setImmediate);
 
+    // run
     updateLaMetric().then(callbackMock);
     await flushPromises();
 
+    // validation
     expect(callbackMock).toBeCalled();
     fetchMock.dontMock();
   });
 
   it("should work integrativly with mocks", async () => {
+    // init
     fetchMock.doMock();
     fetchMock.mockResponses(
       [JSON.stringify(piHoleResponse)], // init pi hole
@@ -206,52 +240,68 @@ describe("testing pi hole for lametric", () => {
       [JSON.stringify({})] // post request to lametric.iderp.io
     );
     const flushPromises = () => new Promise(setImmediate);
+    jest.spyOn(console, "log").mockImplementation(); // ignore logging for unit test
 
+    // run
     main();
     await flushPromises();
 
+    // validation
     fetchMock.dontMock();
     jest.clearAllTimers();
   });
 
   it("should run into an error integrativly", async () => {
+    // init
     fetchMock.doMock();
     fetchMock.mockReject(piHoleErrorResponse);
     const spyConsole = jest.spyOn(console, "log").mockImplementation();
     const flushPromises = () => new Promise(setImmediate);
 
+    // run
     main();
     await flushPromises();
 
+    // validation
     expect(spyConsole).toBeCalledWith(piHoleErrorResponse);
     spyConsole.mockRestore();
     fetchMock.dontMock();
   });
 
   it("shouldn't log, when debug mode is disabled", () => {
+    // init
     config.debugMode = false;
     const spyConsole = jest.spyOn(console, "log").mockImplementation();
+
+    // run
     logIfDebug("test msg");
 
+    // validation
     expect(spyConsole).toHaveBeenCalledTimes(0);
     spyConsole.mockRestore();
   });
 
   it("should log, if debug mode is enabled", () => {
+    // init
     const spyConsole = jest.spyOn(console, "log").mockImplementation();
+
+    // run
     logIfDebug("test msg");
 
+    // validation
     expect(spyConsole).toHaveBeenCalledTimes(1);
     spyConsole.mockRestore();
   });
 
   it("should map pi hole data", () => {
+    // run
     let body = mapToBody(
       piHoleSummaryData,
       piHoleTopItemsData,
       piHoleRecentBlockedData
     );
 
+    // validation
     expect(body.blockListSize).toBe(piHoleSummaryData.domains_being_blocked);
     expect(body.dnsQueriesToday).toBe(piHoleSummaryData.dns_queries_today);
     expect(body.adsBlockedToday).toBe(piHoleSummaryData.ads_blocked_today);
@@ -267,6 +317,7 @@ describe("testing pi hole for lametric", () => {
   });
 
   it("should map key value pair", () => {
+    // run & validation
     expect(mapKeyValuePairToString(piHoleTopItemsData.top_queries, 0)).toBe(
       "data.iot.us-east-1.amazonaws.com (3741 Queries)"
     );

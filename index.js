@@ -240,5 +240,5 @@ let mapToBody = (
 // main();
 
 module.exports = {
-  main,
+    main,
 };
