@@ -179,13 +179,12 @@ describe('testing pi hole for lametric (with debug mode)', () => {
 
 	it('should reject promise, when init of lametric is successful, but data is corrupt', async () => {
 		// init
-		let urlLametricData = 'http://2.2.2.2:8080/api/v2/device';
 		fetchMock
 			.get(laMetricDeviceInfo.url, {
 				status: 200,
 				body: laMetricDeviceInfo.body,
 			})
-			.get(urlLametricData, {
+			.get(laMetricDeviceInfo2.url, {
 				status: 200,
 				body: laMetricDeviceInfoCorrupt,
 			});
@@ -199,7 +198,7 @@ describe('testing pi hole for lametric (with debug mode)', () => {
 			headers: { Authorization: 'Basic ZGV2OjQ1Ng==' },
 			method: 'GET',
 		});
-		expect(fetchMock).toBeCalledWith(urlLametricData, {
+		expect(fetchMock).toBeCalledWith(laMetricDeviceInfo2.url, {
 			headers: { Authorization: 'Basic ZGV2OjQ1Ng==' },
 			method: 'GET',
 		});
@@ -208,15 +207,14 @@ describe('testing pi hole for lametric (with debug mode)', () => {
 
 	it('should resolve promise, when init of lametric is successful', async () => {
 		// init
-		let urlLametricData = 'http://2.2.2.2:8080/api/v2/device';
 		fetchMock
 			.get(laMetricDeviceInfo.url, {
 				status: 200,
 				body: laMetricDeviceInfo.body,
 			})
-			.get(urlLametricData, {
+			.get(laMetricDeviceInfo2.url, {
 				status: 200,
-				body: laMetricDeviceInfo2,
+				body: laMetricDeviceInfo2.body,
 			});
 
 		// run & validation
@@ -226,7 +224,7 @@ describe('testing pi hole for lametric (with debug mode)', () => {
 			headers: { Authorization: 'Basic ZGV2OjQ1Ng==' },
 			method: 'GET',
 		});
-		expect(fetchMock).toBeCalledWith(urlLametricData, {
+		expect(fetchMock).toBeCalledWith(laMetricDeviceInfo2.url, {
 			headers: { Authorization: 'Basic ZGV2OjQ1Ng==' },
 			method: 'GET',
 		});
@@ -274,7 +272,6 @@ describe('testing pi hole for lametric (with debug mode)', () => {
 		// init
 		let urlPiholeData3 =
 			'http://1.1.1.1/admin/api.php?recentBlocked&auth=123';
-		let urlLametricData = 'http://2.2.2.2:8080/api/v2/device';
 		fetchMock
 			.get(piHoleSummaryData.url, {
 				status: 200,
@@ -292,7 +289,7 @@ describe('testing pi hole for lametric (with debug mode)', () => {
 				status: 200,
 				body: lametricNotFoundError.body,
 			})
-			.get(urlLametricData, {
+			.get(laMetricDeviceInfo2.url, {
 				status: 200,
 				body: {},
 			});
@@ -309,7 +306,7 @@ describe('testing pi hole for lametric (with debug mode)', () => {
 			headers: { Authorization: 'Basic ZGV2OjQ1Ng==' },
 			method: 'GET',
 		});
-		expect(fetchMock).toBeCalledWith(urlLametricData, {
+		expect(fetchMock).toBeCalledWith(laMetricDeviceInfo2.url, {
 			headers: { Authorization: 'Basic ZGV2OjQ1Ng==' },
 			method: 'GET',
 		});
@@ -405,7 +402,6 @@ describe('testing pi hole for lametric (with debug mode)', () => {
 		// init
 		let urlPiholeData3 =
 			'http://1.1.1.1/admin/api.php?recentBlocked&auth=123';
-		let urlLametricData = 'http://2.2.2.2:8080/api/v2/device';
 		let urlLametricUpdate = 'https://lametric.glitch.me/pihole/13233';
 		fetchMock
 			.get(piHoleSummaryData.url, {
@@ -424,14 +420,14 @@ describe('testing pi hole for lametric (with debug mode)', () => {
 				status: 200,
 				body: lametricNotFoundError.body,
 			})
-			.get(urlLametricData, {
+			.get(laMetricDeviceInfo2.url, {
 				status: 200,
-				body: laMetricDeviceInfo2,
+				body: laMetricDeviceInfo2.body,
 			})
 			.post(urlLametricUpdate, {
 				// post request to lametric.iderp.io
 				status: 200,
-				body: laMetricDeviceInfo2,
+				body: laMetricDeviceInfo2.body,
 			});
 
 		// run & validation
@@ -444,7 +440,7 @@ describe('testing pi hole for lametric (with debug mode)', () => {
 			headers: { Authorization: 'Basic ZGV2OjQ1Ng==' },
 			method: 'GET',
 		});
-		expect(fetchMock).toBeCalledWith(urlLametricData, {
+		expect(fetchMock).toBeCalledWith(laMetricDeviceInfo2.url, {
 			headers: { Authorization: 'Basic ZGV2OjQ1Ng==' },
 			method: 'GET',
 		});
@@ -487,7 +483,6 @@ describe('testing pi hole for lametric (with debug mode)', () => {
 	it('should work integrativly with mocks', async () => {
 		// init
 		console.log = jest.fn();
-		let urlLametricData = 'http://2.2.2.2:8080/api/v2/device';
 		fetchMock;
 		let urlPiholeData3 =
 			'http://1.1.1.1/admin/api.php?recentBlocked&auth=123';
@@ -501,9 +496,9 @@ describe('testing pi hole for lametric (with debug mode)', () => {
 				status: 200,
 				body: laMetricDeviceInfo.body,
 			})
-			.get(urlLametricData, {
+			.get(laMetricDeviceInfo2.url, {
 				status: 200,
-				body: laMetricDeviceInfo2,
+				body: laMetricDeviceInfo2.body,
 			})
 			// collect data
 			.get(piHoleSummaryData.url, {
@@ -521,7 +516,7 @@ describe('testing pi hole for lametric (with debug mode)', () => {
 			// post request to lametric.iderp.io
 			.post(urlLametricUpdate, {
 				status: 200,
-				body: laMetricDeviceInfo2,
+				body: laMetricDeviceInfo2.body,
 			});
 
 		// run & validation
@@ -529,7 +524,7 @@ describe('testing pi hole for lametric (with debug mode)', () => {
 		await new Promise(setImmediate);
 
 		// validation
-		// piHoleLogin.url, laMetricDeviceInfo.url (2x), urlLametricData (2x), piHoleSummaryData.url, piHoleTopItemsData.url, urlPiholeData3, lametric.iderp.io
+		// piHoleLogin.url, laMetricDeviceInfo.url (2x), laMetricDeviceInfo2.url (2x), piHoleSummaryData.url, piHoleTopItemsData.url, urlPiholeData3, lametric.iderp.io
 		expect(fetchMock).toBeCalledTimes(9);
 		fetchMock.mockReset();
 	});

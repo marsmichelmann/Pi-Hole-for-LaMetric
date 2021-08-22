@@ -118,7 +118,7 @@ let piHoleError = {
 		type: 'system',
 		errno: 'ECONNREFUSED',
 		code: 'ECONNREFUSED',
-	}
+	},
 };
 
 let lametricNotFoundError = {
@@ -129,7 +129,7 @@ let lametricNotFoundError = {
 		type: 'system',
 		errno: 'ECONNREFUSED',
 		code: 'ECONNREFUSED',
-	}
+	},
 };
 
 let lametricUnauthorized = {
@@ -140,7 +140,7 @@ let lametricUnauthorized = {
 				message: 'Authorization is required',
 			},
 		],
-	}
+	},
 };
 
 let laMetricDeviceInfo = {
@@ -158,77 +158,80 @@ let laMetricDeviceInfo = {
 				package: 'com.lametric.58091f88c1c019c8266ccb2ea82e311d',
 			},
 		},
-	}
+	},
 };
 
 let laMetricDeviceInfo2 = {
-	audio: {
-		volume: 53,
-		volume_limit: {
-			max: 69,
-			min: 0,
-		},
-		volume_range: {
-			max: 100,
-			min: 0,
-		},
-	},
-	bluetooth: {
-		active: false,
-		address: 'A0:2C:36:83:3A:B1',
-		available: true,
-		discoverable: true,
-		low_energy: {
-			active: true,
-			advertising: true,
-			connectable: true,
-		},
-		name: 'LM8525',
-		pairable: true,
-	},
-	display: {
-		brightness: 75,
-		brightness_limit: {
-			max: 75,
-			min: 2,
-		},
-		brightness_mode: 'auto',
-		brightness_range: {
-			max: 100,
-			min: 0,
-		},
-		height: 8,
-		screensaver: {
-			enabled: true,
-			modes: {
-				time_based: {
-					enabled: false,
-				},
-				when_dark: {
-					enabled: true,
-				},
+	url: 'http://2.2.2.2:8080/api/v2/device',
+	body: {
+		audio: {
+			volume: 53,
+			volume_limit: {
+				max: 69,
+				min: 0,
 			},
-			widget: '08b8eac21074f8f7e5a29f2855ba8060',
+			volume_range: {
+				max: 100,
+				min: 0,
+			},
 		},
-		type: 'mixed',
-		width: 37,
-	},
-	id: '13233',
-	mode: 'manual',
-	model: 'LM 37X8',
-	name: 'My LaMetric',
-	os_version: '2.1.2',
-	serial_number: 'SA170100852500W00BS9',
-	wifi: {
-		active: true,
-		address: 'A0:2C:36:83:13:A1',
-		available: true,
-		encryption: 'WPA',
-		essid: 'FRITZ!Box7580',
-		ip: '192.168.2.35',
-		mode: 'dhcp',
-		netmask: '255.255.255.0',
-		strength: 98,
+		bluetooth: {
+			active: false,
+			address: 'A0:2C:36:83:3A:B1',
+			available: true,
+			discoverable: true,
+			low_energy: {
+				active: true,
+				advertising: true,
+				connectable: true,
+			},
+			name: 'LM8525',
+			pairable: true,
+		},
+		display: {
+			brightness: 75,
+			brightness_limit: {
+				max: 75,
+				min: 2,
+			},
+			brightness_mode: 'auto',
+			brightness_range: {
+				max: 100,
+				min: 0,
+			},
+			height: 8,
+			screensaver: {
+				enabled: true,
+				modes: {
+					time_based: {
+						enabled: false,
+					},
+					when_dark: {
+						enabled: true,
+					},
+				},
+				widget: '08b8eac21074f8f7e5a29f2855ba8060',
+			},
+			type: 'mixed',
+			width: 37,
+		},
+		id: '13233',
+		mode: 'manual',
+		model: 'LM 37X8',
+		name: 'My LaMetric',
+		os_version: '2.1.2',
+		serial_number: 'SA170100852500W00BS9',
+		wifi: {
+			active: true,
+			address: 'A0:2C:36:83:13:A1',
+			available: true,
+			encryption: 'WPA',
+			essid: 'FRITZ!Box7580',
+			ip: '192.168.2.35',
+			mode: 'dhcp',
+			netmask: '255.255.255.0',
+			strength: 98,
+		},
 	},
 };
 
