@@ -1,12 +1,12 @@
 // import mock data
 const {
-	piHoleErrorResponse,
+	piHoleError,
 	piHoleInvalidData,
 	piHoleLogin,
 	piHoleSummaryData,
 	piHoleTopItemsData,
 	piHoleRecentBlockedData,
-	lametricNotFoundErrorResponse,
+	lametricNotFoundError,
 	lametricUnauthorizedResponse,
 	laMetricDeviceInfo,
 	laMetricDeviceInfo2,
@@ -97,15 +97,14 @@ describe('testing pi hole for lametric (with debug mode)', () => {
 	it('should reject promise, when init of pi hole leads to error response', async () => {
 		// init
 		console.log = jest.fn();
-		let url = 'http://1.1.1.1/admin/api.php?getQueryTypes&auth=123';
-		fetchMock.get(url, { status: 200, body: piHoleErrorResponse });
+		fetchMock.get(piHoleError.url, { status: 200, body: piHoleError.body });
 
 		// run & validation
 		await expect(piHoleTest()).rejects.toEqual(
 			'Unable to connect to Pi-Hole via the supplied IP. Make sure that the IP is correct.',
 		);
 		expect(fetchMock).toBeCalledTimes(1);
-		expect(fetchMock).toBeCalledWith(url, undefined);
+		expect(fetchMock).toBeCalledWith(piHoleError.url, undefined);
 		fetchMock.mockReset();
 	});
 
@@ -143,18 +142,16 @@ describe('testing pi hole for lametric (with debug mode)', () => {
 
 	it('should reject promise, when init of lametric leads to error response', async () => {
 		// init
-		let urlLametricLogin =
-			'http://2.2.2.2:8080/api/v2/device/apps/com.lametric.58091f88c1c019c8266ccb2ea82e311d';
-		fetchMock.get(urlLametricLogin, {
-			throws: lametricNotFoundErrorResponse,
+		fetchMock.get(lametricNotFoundError.url, {
+			throws: lametricNotFoundError.body,
 		});
 
 		// run & validation
 		await expect(laMetricTest()).rejects.toEqual(
-			lametricNotFoundErrorResponse,
+			lametricNotFoundError.body,
 		);
 		expect(fetchMock).toBeCalledTimes(1);
-		expect(fetchMock).toBeCalledWith(urlLametricLogin, {
+		expect(fetchMock).toBeCalledWith(lametricNotFoundError.url, {
 			headers: { Authorization: 'Basic ZGV2OjQ1Ng==' },
 			method: 'GET',
 		});
@@ -285,8 +282,6 @@ describe('testing pi hole for lametric (with debug mode)', () => {
 		// init
 		let urlPiholeData3 =
 			'http://1.1.1.1/admin/api.php?recentBlocked&auth=123';
-		let urlLametricLogin =
-			'http://2.2.2.2:8080/api/v2/device/apps/com.lametric.58091f88c1c019c8266ccb2ea82e311d';
 		let urlLametricData = 'http://2.2.2.2:8080/api/v2/device';
 		fetchMock
 			.get(piHoleSummaryData.url, {
@@ -301,9 +296,9 @@ describe('testing pi hole for lametric (with debug mode)', () => {
 				status: 200,
 				body: piHoleRecentBlockedData,
 			})
-			.get(urlLametricLogin, {
+			.get(lametricNotFoundError.url, {
 				status: 200,
-				body: lametricNotFoundErrorResponse,
+				body: lametricNotFoundError.body,
 			})
 			.get(urlLametricData, {
 				status: 200,
@@ -318,7 +313,7 @@ describe('testing pi hole for lametric (with debug mode)', () => {
 		expect(fetchMock).toBeCalledWith(piHoleSummaryData.url, undefined);
 		expect(fetchMock).toBeCalledWith(piHoleTopItemsData.url, undefined);
 		expect(fetchMock).toBeCalledWith(urlPiholeData3, undefined);
-		expect(fetchMock).toBeCalledWith(urlLametricLogin, {
+		expect(fetchMock).toBeCalledWith(lametricNotFoundError.url, {
 			headers: { Authorization: 'Basic ZGV2OjQ1Ng==' },
 			method: 'GET',
 		});
@@ -439,9 +434,9 @@ describe('testing pi hole for lametric (with debug mode)', () => {
 				status: 200,
 				body: piHoleRecentBlockedData,
 			})
-			.get(urlLametricLogin, {
+			.get(lametricNotFoundError.url, {
 				status: 200,
-				body: lametricNotFoundErrorResponse,
+				body: lametricNotFoundError.body,
 			})
 			.get(urlLametricData, {
 				status: 200,
@@ -487,11 +482,9 @@ describe('testing pi hole for lametric (with debug mode)', () => {
 	it('should run into an error integrativly', async () => {
 		// init
 		const spyConsole = jest.spyOn(console, 'log').mockImplementation();
-		let urlPiholeLogin =
-			'http://1.1.1.1/admin/api.php?getQueryTypes&auth=123';
-		fetchMock.get(urlPiholeLogin, {
+		fetchMock.get(piHoleError.url, {
 			status: 200,
-			body: piHoleErrorResponse,
+			body: piHoleError.body,
 		});
 
 		// run

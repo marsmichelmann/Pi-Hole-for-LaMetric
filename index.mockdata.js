@@ -110,20 +110,26 @@ let piHoleLogin = {
 	},
 };
 
-let piHoleErrorResponse = {
-	message:
-		'request to http://localhost/admin/api.php?getQueryTypes&auth=7f47df1359d0453d67b647e24e1c88666d3e8ff7ffd9972fc8ae99923e5f7ac5 failed, reason: connect ECONNREFUSED 127.0.0.1:80',
-	type: 'system',
-	errno: 'ECONNREFUSED',
-	code: 'ECONNREFUSED',
+let piHoleError = {
+	url: 'http://1.1.1.1/admin/api.php?getQueryTypes&auth=123',
+	body: {
+		message:
+			'request to http://localhost/admin/api.php?getQueryTypes&auth=7f47df1359d0453d67b647e24e1c88666d3e8ff7ffd9972fc8ae99923e5f7ac5 failed, reason: connect ECONNREFUSED 127.0.0.1:80',
+		type: 'system',
+		errno: 'ECONNREFUSED',
+		code: 'ECONNREFUSED',
+	}
 };
 
-let lametricNotFoundErrorResponse = {
-	message:
-		'request to http://127.0.0.1:8080/api/v2/device/apps/com.lametric.58091f88c1c019c8266ccb2ea82e311d failed, reason: connect ECONNREFUSED 127.0.0.1:8080',
-	type: 'system',
-	errno: 'ECONNREFUSED',
-	code: 'ECONNREFUSED',
+let lametricNotFoundError = {
+	url: 'http://2.2.2.2:8080/api/v2/device/apps/com.lametric.58091f88c1c019c8266ccb2ea82e311d',
+	body: {
+		message:
+			'request to http://127.0.0.1:8080/api/v2/device/apps/com.lametric.58091f88c1c019c8266ccb2ea82e311d failed, reason: connect ECONNREFUSED 127.0.0.1:8080',
+		type: 'system',
+		errno: 'ECONNREFUSED',
+		code: 'ECONNREFUSED',
+	}
 };
 
 let lametricUnauthorizedResponse = {
@@ -230,11 +236,11 @@ module.exports = {
 	piHoleTopItemsData,
 	piHoleRecentBlockedData,
 	piHoleInvalidData,
-	piHoleErrorResponse,
+	piHoleError,
 	piHoleLogin,
 	laMetricDeviceInfo,
 	laMetricDeviceInfo2,
-	lametricNotFoundErrorResponse,
+	lametricNotFoundError,
 	lametricUnauthorizedResponse,
 	laMetricDeviceInfoCorrupt,
 };
