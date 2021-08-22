@@ -242,6 +242,8 @@ let laMetricDeviceInfoCorrupt = {
 	bla: '4711',
 };
 
+let urlLametricUpdate = 'https://lametric.glitch.me/pihole/13233';
+
 module.exports = {
 	mockConfig,
 	piHoleSummaryData,
@@ -255,4 +257,5 @@ module.exports = {
 	lametricNotFoundError,
 	lametricUnauthorized,
 	laMetricDeviceInfoCorrupt,
+	urlLametricUpdate
 };

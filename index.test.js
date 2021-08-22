@@ -11,6 +11,7 @@ const {
 	laMetricDeviceInfo,
 	laMetricDeviceInfo2,
 	laMetricDeviceInfoCorrupt,
+	urlLametricUpdate,
 } = require('./index.mockdata');
 
 // mock fetch
@@ -394,7 +395,6 @@ describe('testing pi hole for lametric (with debug mode)', () => {
 
 	it('should resolve promise, when update of lametric is successful', async () => {
 		// init
-		let urlLametricUpdate = 'https://lametric.glitch.me/pihole/13233';
 		fetchMock
 			.get(piHoleSummaryData.url, {
 				status: 200,
@@ -475,7 +475,6 @@ describe('testing pi hole for lametric (with debug mode)', () => {
 	it('should work integrativly with mocks', async () => {
 		// init
 		console.log = jest.fn();
-		let urlLametricUpdate = 'https://lametric.glitch.me/pihole/13233';
 
 		fetchMock
 			// init pi hole
