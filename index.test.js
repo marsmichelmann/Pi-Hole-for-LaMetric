@@ -17,6 +17,7 @@ const fetchMock = require('node-fetch');
 jest.mock('node-fetch', () => require('fetch-mock-jest').sandbox());
 
 // mock config
+const config = require(`./config.json`);
 jest.mock('./config.json', () => require('./index.mockdata').mockConfig);
 
 // import private functions to test
@@ -42,10 +43,10 @@ describe('testing pi hole for lametric', () => {
 		jest.clearAllTimers();
 	});
 
-	xit("shouldn't log, when debug mode is disabled", () => {
+	it("shouldn't log, when debug mode is disabled", () => {
 		const spyConsole = jest.fn();
+		config.debugMode = false;
 		console.log = spyConsole;
-		mockDebugMode = false;
 
 		// run
 		logIfDebug('test msg');
