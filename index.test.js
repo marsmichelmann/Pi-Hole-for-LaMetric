@@ -12,6 +12,7 @@ const mapToBody = require('./index.js').__get__('mapToBody');
 const mapKeyValuePairToString = require('./index.js').__get__(
 	'mapKeyValuePairToString',
 );
+const fetchWithAuth = require('./index.js').__get__('fetchWithAuth');
 
 // const { piHoleResponse } = require('./index.mockdata');
 // const { main } = require('./index');
@@ -20,6 +21,7 @@ const mapKeyValuePairToString = require('./index.js').__get__(
 // const { laMetricDeviceInfo } = require('./index.mockdata');
 // const { laMetricDeviceInfo2 } = require('./index.mockdata');
 
+// mock fetch
 const fetchMock = require('node-fetch');
 jest.mock('node-fetch', () => require('fetch-mock-jest').sandbox());
 
@@ -27,12 +29,12 @@ jest.mock('node-fetch', () => require('fetch-mock-jest').sandbox());
 jest.mock('./config.json', () => require('./index.mockdata').mockConfig);
 
 describe('testing pi hole for lametric', () => {
-	// const fetchWithAuth = require('./index.js').__get__('fetchWithAuth');
 	// const laMetricTest = require('./index.js').__get__('laMetricTest');
 	// const updateLaMetric = require('./index.js').__get__('updateLaMetric');
 	// const startUpdateTimer = require('./index.js').__get__('startUpdateTimer');
 
 	beforeEach(() => {
+		fetchMock.config.fallbackToNetwork = true;
 		jest.useFakeTimers();
 	});
 
@@ -59,15 +61,22 @@ describe('testing pi hole for lametric', () => {
 	// 	expect(callbackMock).toBeCalled();
 	// 	jest.clearAllTimers();
 	// });
-	//
-	// it('should fetch Json Placeholder via fetchWithAuth', () => {
-	// 	// run & validation
-	// 	return fetchWithAuth(
-	// 		'https://jsonplaceholder.typicode.com/todos/1',
-	// 	).then((data) => {
-	// 		expect(data.title).toBe('delectus aut autem');
-	// 	});
-	// });
+
+	it('should fetch Json Placeholder via fetchWithAuth', async () => {
+		// init
+		console.warn = jest.fn();
+
+		// run & validation
+		await expect(
+			fetchWithAuth('https://jsonplaceholder.typicode.com/todos/1'),
+		).resolves.toEqual({
+			completed: false,
+			id: 1,
+			title: 'delectus aut autem',
+			userId: 1,
+		});
+		fetchMock.mockReset();
+	});
 
 	it('should reject promise, when init of pi hole leads to error response', async () => {
 		// init
@@ -75,12 +84,10 @@ describe('testing pi hole for lametric', () => {
 		let url = 'http://1.1.1.1/admin/api.php?getQueryTypes&auth=123';
 		fetchMock.get(url, { status: 200, body: piHoleErrorResponse });
 
-		// run
+		// run & validation
 		await expect(piHoleTest()).rejects.toEqual(
 			'Unable to connect to Pi-Hole via the supplied IP. Make sure that the IP is correct.',
 		);
-
-		// validation
 		expect(fetchMock).toBeCalledTimes(1);
 		expect(fetchMock).toBeCalledWith(url, undefined);
 		fetchMock.mockReset();
@@ -92,12 +99,10 @@ describe('testing pi hole for lametric', () => {
 		let url = 'http://1.1.1.1/admin/api.php?getQueryTypes&auth=123';
 		fetchMock.get(url, { status: 200, body: piHoleInvalidResponse });
 
-		// run
+		// run & validation
 		await expect(piHoleTest()).rejects.toEqual(
 			'Unable to connect to Pi-Hole via the supplied IP. Make sure that the IP is correct.',
 		);
-
-		// validation
 		expect(fetchMock).toBeCalledTimes(1);
 		expect(fetchMock).toBeCalledWith(url, undefined);
 		fetchMock.mockReset();
