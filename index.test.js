@@ -1,5 +1,4 @@
 // import mock data
-const config = require(`./config.json`);
 const { piHoleErrorResponse } = require('./index.mockdata');
 const { piHoleInvalidResponse } = require('./index.mockdata');
 const { piHoleSummaryData } = require('./index.mockdata');
@@ -24,6 +23,12 @@ const mapKeyValuePairToString = require('./index.js').__get__(
 const fetchMock = require('node-fetch');
 jest.mock('node-fetch', () => require('fetch-mock-jest').sandbox());
 
+jest.mock('./config.json', () => ({
+	debugMode: true,
+	PiHole: { IP: '1.1.1.1', AuthKey: '123' },
+	LaMetric: { IP: '2.2.2.2', AuthKey: '456' },
+}));
+
 describe('testing pi hole for lametric', () => {
 	// const fetchWithAuth = require('./index.js').__get__('fetchWithAuth');
 	// const laMetricTest = require('./index.js').__get__('laMetricTest');
@@ -31,7 +36,6 @@ describe('testing pi hole for lametric', () => {
 	// const startUpdateTimer = require('./index.js').__get__('startUpdateTimer');
 
 	beforeEach(() => {
-		config.debugMode = true;
 		jest.useFakeTimers();
 	});
 
@@ -71,8 +75,7 @@ describe('testing pi hole for lametric', () => {
 	it('should reject promise, when init of pi hole leads to error response', async () => {
 		// init
 		console.log = jest.fn();
-		let url =
-			'http://192.168.2.3/admin/api.php?getQueryTypes&auth=7f47df1359d0453d67b647e24e1c88666d3e8ff7ffd9972fc8ae99923e5f7ac5';
+		let url = 'http://1.1.1.1/admin/api.php?getQueryTypes&auth=123';
 		fetchMock.get(url, { status: 200, body: piHoleErrorResponse });
 
 		// run
@@ -89,8 +92,7 @@ describe('testing pi hole for lametric', () => {
 	it('should reject promise, when init of pi hole leads to unexpected response', async () => {
 		// init
 		console.log = jest.fn();
-		let url =
-			'http://192.168.2.3/admin/api.php?getQueryTypes&auth=7f47df1359d0453d67b647e24e1c88666d3e8ff7ffd9972fc8ae99923e5f7ac5';
+		let url = 'http://1.1.1.1/admin/api.php?getQueryTypes&auth=123';
 		fetchMock.get(url, { status: 200, body: piHoleInvalidResponse });
 
 		// run
@@ -280,11 +282,10 @@ describe('testing pi hole for lametric', () => {
 	// 	fetchMock.dontMock();
 	// });
 	//
-	it("shouldn't log, when debug mode is disabled", () => {
-		// init
-		config.debugMode = false;
+	xit("shouldn't log, when debug mode is disabled", () => {
 		const spyConsole = jest.fn();
 		console.log = spyConsole;
+		mockDebugMode = false;
 
 		// run
 		logIfDebug('test msg');
