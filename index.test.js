@@ -33,7 +33,7 @@ const updateLaMetric = require('./index.js').__get__('updateLaMetric');
 const fetchWithAuth = require('./index.js').__get__('fetchWithAuth');
 const { main } = require('./index');
 
-describe('testing pi hole for lametric', () => {
+describe('testing pi hole for lametric (with debug mode)', () => {
 	beforeEach(() => {
 		fetchMock.config.fallbackToNetwork = true;
 		jest.useFakeTimers('legacy');
@@ -41,18 +41,6 @@ describe('testing pi hole for lametric', () => {
 
 	afterEach(() => {
 		jest.clearAllTimers();
-	});
-
-	it("shouldn't log, when debug mode is disabled", () => {
-		const spyConsole = jest.fn();
-		config.debugMode = false;
-		console.log = spyConsole;
-
-		// run
-		logIfDebug('test msg');
-
-		// validation
-		expect(spyConsole).toHaveBeenCalledTimes(0);
 	});
 
 	it('should log, if debug mode is enabled', () => {
@@ -569,5 +557,22 @@ describe('testing pi hole for lametric', () => {
 		// urlPiholeLogin, urlLametricLogin (2x), urlLametricData (2x), urlPiholeData, urlPiholeData2, urlPiholeData3, lametric.iderp.io
 		expect(fetchMock).toBeCalledTimes(9);
 		fetchMock.mockReset();
+	});
+});
+
+describe('testing pi hole for lametric (without debug mode)', () => {
+	const config = require(`./config.json`);
+
+	it("shouldn't log, when debug mode is disabled", () => {
+		// init
+		const spyConsole = jest.fn();
+		console.log = spyConsole;
+		config.debugMode = false;
+
+		// run
+		logIfDebug('test msg');
+
+		// validation
+		expect(spyConsole).toHaveBeenCalledTimes(0);
 	});
 });
