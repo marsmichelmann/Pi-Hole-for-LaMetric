@@ -16,7 +16,6 @@ const piHoleTest = require('./index.js').__get__('piHoleTest');
 // const { laMetricDeviceInfo2 } = require('./index.mockdata');
 const logIfDebug = require('./index.js').__get__('logIfDebug');
 
-
 describe('testing pi hole for lametric', () => {
 	// const fetchWithAuth = require('./index.js').__get__('fetchWithAuth');
 	// const mapToBody = require('./index.js').__get__('mapToBody');
@@ -69,12 +68,13 @@ describe('testing pi hole for lametric', () => {
 	it('should call catch callback function, when init of pi hole leads to error response', async () => {
 		// init
 		console.log = jest.fn();
-		let url = 'http://192.168.2.3/admin/api.php?getQueryTypes&auth=7f47df1359d0453d67b647e24e1c88666d3e8ff7ffd9972fc8ae99923e5f7ac5';
+		let url =
+			'http://192.168.2.3/admin/api.php?getQueryTypes&auth=7f47df1359d0453d67b647e24e1c88666d3e8ff7ffd9972fc8ae99923e5f7ac5';
 		fetchMock.get(url, { status: 200, body: piHoleErrorResponse });
 
 		// run
 		await expect(piHoleTest()).rejects.toEqual(
-			'Unable to connect to Pi-Hole via the supplied IP. Make sure that the IP is correct.'
+			'Unable to connect to Pi-Hole via the supplied IP. Make sure that the IP is correct.',
 		);
 
 		// validation
