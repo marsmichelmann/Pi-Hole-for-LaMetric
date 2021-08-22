@@ -88,10 +88,17 @@ let laMetricTest = () => {
 					`http://${config.LaMetric.IP}:8080/api/v2/device`,
 					laMetricAuthKey,
 				).then((laMetricDeviceInfo2) => {
-					spinner.succeed(
-						`Connected to "${laMetricDeviceInfo2.name}" @ ${config.LaMetric.IP} running OS v${laMetricDeviceInfo2.os_version} & Pi-Hole Status v${laMetricDeviceInfo.version}! (${laMetricDeviceInfo2.serial_number})`,
-					);
-					return resolve();
+					if (laMetricDeviceInfo2.name) {
+						spinner.succeed(
+							`Connected to "${laMetricDeviceInfo2.name}" @ ${config.LaMetric.IP} running OS v${laMetricDeviceInfo2.os_version} & Pi-Hole Status v${laMetricDeviceInfo.version}! (${laMetricDeviceInfo2.serial_number})`,
+						);
+						return resolve();
+					} else {
+						let msg =
+							'Lametric data not available Invalid! Make sure the supplied key is correct.';
+						spinner.fail(msg);
+						return reject(msg);
+					}
 				});
 			})
 			.catch((err) => {

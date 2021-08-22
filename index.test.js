@@ -1,9 +1,13 @@
 // import mock data
-const { piHoleErrorResponse } = require('./index.mockdata');
-const { piHoleInvalidResponse } = require('./index.mockdata');
-const { piHoleSummaryData } = require('./index.mockdata');
-const { piHoleTopItemsData } = require('./index.mockdata');
-const { piHoleRecentBlockedData } = require('./index.mockdata');
+const {
+	piHoleErrorResponse,
+	piHoleInvalidResponse,
+	piHoleResponse,
+	piHoleSummaryData,
+	piHoleTopItemsData,
+	piHoleRecentBlockedData,
+	lametricNotFoundErrorResponse,
+} = require('./index.mockdata');
 
 // import private functions to test
 const logIfDebug = require('./index.js').__get__('logIfDebug');
@@ -13,10 +17,10 @@ const mapKeyValuePairToString = require('./index.js').__get__(
 	'mapKeyValuePairToString',
 );
 const fetchWithAuth = require('./index.js').__get__('fetchWithAuth');
+const laMetricTest = require('./index.js').__get__('laMetricTest');
 
-// const { piHoleResponse } = require('./index.mockdata');
 // const { main } = require('./index');
-// const { lametricNotFoundErrorResponse } = require('./index.mockdata');
+
 // const { lametricUnauthorizedResponse } = require('./index.mockdata');
 // const { laMetricDeviceInfo } = require('./index.mockdata');
 // const { laMetricDeviceInfo2 } = require('./index.mockdata');
@@ -29,12 +33,11 @@ jest.mock('node-fetch', () => require('fetch-mock-jest').sandbox());
 jest.mock('./config.json', () => require('./index.mockdata').mockConfig);
 
 describe('testing pi hole for lametric', () => {
-	// const laMetricTest = require('./index.js').__get__('laMetricTest');
 	// const updateLaMetric = require('./index.js').__get__('updateLaMetric');
 	// const startUpdateTimer = require('./index.js').__get__('startUpdateTimer');
 
 	beforeEach(() => {
-		fetchMock.config.fallbackToNetwork = true;
+		//fetchMock.config.fallbackToNetwork = true;
 		jest.useFakeTimers();
 	});
 
@@ -108,39 +111,50 @@ describe('testing pi hole for lametric', () => {
 		fetchMock.mockReset();
 	});
 
-	// it('should then call callback function, when init of pi hole is successful', async () => {
-	// 	// init
-	// 	fetchMock.doMock();
-	// 	fetchMock.mockResponse(JSON.stringify(piHoleResponse));
-	// 	const callbackMock = jest.fn(() => {});
-	// 	const flushPromises = () => new Promise(setImmediate);
-	// 	jest.spyOn(console, 'log').mockImplementation(); // ignore logging for unit test
-	//
-	// 	// run
-	// 	piHoleTest().then(callbackMock);
-	// 	await flushPromises();
-	//
-	// 	// validation
-	// 	expect(callbackMock).toBeCalled();
-	// 	fetchMock.dontMock();
-	// });
-	//
-	// it('should call catch callback function, when init of lametric leads to error response', async () => {
-	// 	// init
-	// 	fetchMock.doMock();
-	// 	fetchMock.mockReject(JSON.stringify(lametricNotFoundErrorResponse));
-	// 	const callbackMock = jest.fn(() => {});
-	// 	const flushPromises = () => new Promise(setImmediate);
-	//
-	// 	// run
-	// 	laMetricTest().catch(callbackMock);
-	// 	await flushPromises();
-	//
-	// 	// validation
-	// 	expect(callbackMock).toBeCalled();
-	// 	fetchMock.dontMock();
-	// });
-	//
+	it('should resolve promise, when init of pi hole is successful', async () => {
+		// init
+		console.log = jest.fn();
+		let url = 'http://1.1.1.1/admin/api.php?getQueryTypes&auth=123';
+		fetchMock.get(url, { status: 200, body: piHoleResponse });
+
+		// run & validation
+		await expect(piHoleTest()).resolves.toBeUndefined();
+		expect(fetchMock).toBeCalledTimes(1);
+		expect(fetchMock).toBeCalledWith(url, undefined);
+		fetchMock.mockReset();
+	});
+
+	it('should reject promise, when init of lametric leads to error response', async () => {
+		// init
+		let url =
+			'http://2.2.2.2:8080/api/v2/device/apps/com.lametric.58091f88c1c019c8266ccb2ea82e311d';
+		let url2 = 'http://2.2.2.2:8080/api/v2/device';
+		fetchMock
+			.get(url, {
+				status: 200,
+				body: lametricNotFoundErrorResponse,
+			})
+			.get(url2, {
+				status: 200,
+				body: {},
+			});
+
+		// run & validation
+		await expect(laMetricTest()).rejects.toEqual(
+			'Lametric data not available Invalid! Make sure the supplied key is correct.',
+		);
+		expect(fetchMock).toBeCalledTimes(2);
+		expect(fetchMock).toBeCalledWith(url, {
+			headers: { Authorization: 'Basic ZGV2OjQ1Ng==' },
+			method: 'GET',
+		});
+		expect(fetchMock).toBeCalledWith(url2, {
+			headers: { Authorization: 'Basic ZGV2OjQ1Ng==' },
+			method: 'GET',
+		});
+		fetchMock.mockReset();
+	});
+
 	// it('should call catch callback function, when connection to found lametric is unauthorized', async () => {
 	// 	// init
 	// 	fetchMock.doMock();
