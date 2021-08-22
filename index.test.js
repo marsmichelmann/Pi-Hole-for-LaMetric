@@ -1,28 +1,31 @@
+// import mock data
 const config = require(`./config.json`);
-jest.mock('node-fetch', () => require('fetch-mock-jest').sandbox());
-const fetchMock = require('node-fetch');
-
-// const { piHoleSummaryData } = require('./index.mockdata');
-// const { piHoleTopItemsData } = require('./index.mockdata');
-// const { piHoleRecentBlockedData } = require('./index.mockdata');
 const { piHoleErrorResponse } = require('./index.mockdata');
+const { piHoleInvalidResponse } = require('./index.mockdata');
+const { piHoleSummaryData } = require('./index.mockdata');
+const { piHoleTopItemsData } = require('./index.mockdata');
+const { piHoleRecentBlockedData } = require('./index.mockdata');
+
+// import private functions to test
+const logIfDebug = require('./index.js').__get__('logIfDebug');
 const piHoleTest = require('./index.js').__get__('piHoleTest');
-// const { piHoleInvalidResponse } = require('./index.mockdata');
+const mapToBody = require('./index.js').__get__('mapToBody');
+const mapKeyValuePairToString = require('./index.js').__get__(
+	'mapKeyValuePairToString',
+);
+
 // const { piHoleResponse } = require('./index.mockdata');
 // const { main } = require('./index');
 // const { lametricNotFoundErrorResponse } = require('./index.mockdata');
 // const { lametricUnauthorizedResponse } = require('./index.mockdata');
 // const { laMetricDeviceInfo } = require('./index.mockdata');
 // const { laMetricDeviceInfo2 } = require('./index.mockdata');
-const logIfDebug = require('./index.js').__get__('logIfDebug');
+
+const fetchMock = require('node-fetch');
+jest.mock('node-fetch', () => require('fetch-mock-jest').sandbox());
 
 describe('testing pi hole for lametric', () => {
 	// const fetchWithAuth = require('./index.js').__get__('fetchWithAuth');
-	// const mapToBody = require('./index.js').__get__('mapToBody');
-
-	// const mapKeyValuePairToString = require('./index.js').__get__(
-	// 	'mapKeyValuePairToString',
-	// );
 	// const laMetricTest = require('./index.js').__get__('laMetricTest');
 	// const updateLaMetric = require('./index.js').__get__('updateLaMetric');
 	// const startUpdateTimer = require('./index.js').__get__('startUpdateTimer');
@@ -65,7 +68,7 @@ describe('testing pi hole for lametric', () => {
 	// 	});
 	// });
 
-	it('should call catch callback function, when init of pi hole leads to error response', async () => {
+	it('should reject promise, when init of pi hole leads to error response', async () => {
 		// init
 		console.log = jest.fn();
 		let url =
@@ -83,23 +86,24 @@ describe('testing pi hole for lametric', () => {
 		fetchMock.mockReset();
 	});
 
-	// it('should call catch callback function, when init of pi hole leads to unexpected response', async () => {
-	// 	// init
-	// 	fetchMock.doMock();
-	// 	fetchMock.mockResponse(JSON.stringify(piHoleInvalidResponse));
-	// 	const callbackMock = jest.fn(() => {});
-	// 	const flushPromises = () => new Promise(setImmediate);
-	// 	jest.spyOn(console, 'log').mockImplementation(); // ignore logging for unit test
-	//
-	// 	// run
-	// 	piHoleTest().catch(callbackMock);
-	// 	await flushPromises();
-	//
-	// 	// validation
-	// 	expect(callbackMock).toBeCalled();
-	// 	fetchMock.dontMock();
-	// });
-	//
+	it('should reject promise, when init of pi hole leads to unexpected response', async () => {
+		// init
+		console.log = jest.fn();
+		let url =
+			'http://192.168.2.3/admin/api.php?getQueryTypes&auth=7f47df1359d0453d67b647e24e1c88666d3e8ff7ffd9972fc8ae99923e5f7ac5';
+		fetchMock.get(url, { status: 200, body: piHoleInvalidResponse });
+
+		// run
+		await expect(piHoleTest()).rejects.toEqual(
+			'Unable to connect to Pi-Hole via the supplied IP. Make sure that the IP is correct.',
+		);
+
+		// validation
+		expect(fetchMock).toBeCalledTimes(1);
+		expect(fetchMock).toBeCalledWith(url, undefined);
+		fetchMock.mockReset();
+	});
+
 	// it('should then call callback function, when init of pi hole is successful', async () => {
 	// 	// init
 	// 	fetchMock.doMock();
@@ -276,22 +280,23 @@ describe('testing pi hole for lametric', () => {
 	// 	fetchMock.dontMock();
 	// });
 	//
-	// it("shouldn't log, when debug mode is disabled", () => {
-	// 	// init
-	// 	config.debugMode = false;
-	// 	const spyConsole = jest.spyOn(console, 'log').mockImplementation();
-	//
-	// 	// run
-	// 	logIfDebug('test msg');
-	//
-	// 	// validation
-	// 	expect(spyConsole).toHaveBeenCalledTimes(0);
-	// 	spyConsole.mockRestore();
-	// });
-	//
+	it("shouldn't log, when debug mode is disabled", () => {
+		// init
+		config.debugMode = false;
+		const spyConsole = jest.fn();
+		console.log = spyConsole;
+
+		// run
+		logIfDebug('test msg');
+
+		// validation
+		expect(spyConsole).toHaveBeenCalledTimes(0);
+	});
+
 	it('should log, if debug mode is enabled', () => {
 		// init
-		const spyConsole = jest.spyOn(console, 'log').mockImplementation();
+		const spyConsole = jest.fn();
+		console.log = spyConsole;
 
 		// run
 		logIfDebug('test msg');
@@ -299,47 +304,47 @@ describe('testing pi hole for lametric', () => {
 		// validation
 		expect(spyConsole).toHaveBeenCalledTimes(1);
 	});
-	//
-	// it('should map pi hole data', () => {
-	// 	// run
-	// 	let body = mapToBody(
-	// 		piHoleSummaryData,
-	// 		piHoleTopItemsData,
-	// 		piHoleRecentBlockedData,
-	// 	);
-	//
-	// 	// validation
-	// 	expect(body.blockListSize).toBe(
-	// 		piHoleSummaryData.domains_being_blocked,
-	// 	);
-	// 	expect(body.dnsQueriesToday).toBe(piHoleSummaryData.dns_queries_today);
-	// 	expect(body.adsBlockedToday).toBe(piHoleSummaryData.ads_blocked_today);
-	// 	expect(body.totalClientsSeen).toBe(piHoleSummaryData.clients_ever_seen);
-	// 	expect(body.totalDNSQueries).toBe(
-	// 		piHoleSummaryData.dns_queries_all_types,
-	// 	);
-	// 	expect(body.topQuery).toBe(
-	// 		'data.iot.us-east-1.amazonaws.com (3741 Queries)',
-	// 	);
-	// 	expect(body.topBlockedQuery).toBe(
-	// 		'web.vortex.data.microsoft.com (928 Queries)',
-	// 	);
-	// 	expect(body.lastBlockedQuery).toBe(piHoleRecentBlockedData);
-	// });
-	//
-	// it('should map key value pair', () => {
-	// 	// run & validation
-	// 	expect(mapKeyValuePairToString(piHoleTopItemsData.top_queries, 0)).toBe(
-	// 		'data.iot.us-east-1.amazonaws.com (3741 Queries)',
-	// 	);
-	// 	expect(mapKeyValuePairToString(piHoleTopItemsData.top_queries, 1)).toBe(
-	// 		'lametric.iderp.io (2854 Queries)',
-	// 	);
-	// 	expect(mapKeyValuePairToString(piHoleTopItemsData.top_ads, 0)).toBe(
-	// 		'web.vortex.data.microsoft.com (928 Queries)',
-	// 	);
-	// 	expect(mapKeyValuePairToString(piHoleTopItemsData.top_ads, 1)).toBe(
-	// 		'ichnaea.netflix.com (647 Queries)',
-	// 	);
-	// });
+
+	it('should map pi hole data', () => {
+		// run
+		let body = mapToBody(
+			piHoleSummaryData,
+			piHoleTopItemsData,
+			piHoleRecentBlockedData,
+		);
+
+		// validation
+		expect(body.blockListSize).toBe(
+			piHoleSummaryData.domains_being_blocked,
+		);
+		expect(body.dnsQueriesToday).toBe(piHoleSummaryData.dns_queries_today);
+		expect(body.adsBlockedToday).toBe(piHoleSummaryData.ads_blocked_today);
+		expect(body.totalClientsSeen).toBe(piHoleSummaryData.clients_ever_seen);
+		expect(body.totalDNSQueries).toBe(
+			piHoleSummaryData.dns_queries_all_types,
+		);
+		expect(body.topQuery).toBe(
+			'data.iot.us-east-1.amazonaws.com (3741 Queries)',
+		);
+		expect(body.topBlockedQuery).toBe(
+			'web.vortex.data.microsoft.com (928 Queries)',
+		);
+		expect(body.lastBlockedQuery).toBe(piHoleRecentBlockedData);
+	});
+
+	it('should map key value pair', () => {
+		// run & validation
+		expect(mapKeyValuePairToString(piHoleTopItemsData.top_queries, 0)).toBe(
+			'data.iot.us-east-1.amazonaws.com (3741 Queries)',
+		);
+		expect(mapKeyValuePairToString(piHoleTopItemsData.top_queries, 1)).toBe(
+			'lametric.iderp.io (2854 Queries)',
+		);
+		expect(mapKeyValuePairToString(piHoleTopItemsData.top_ads, 0)).toBe(
+			'web.vortex.data.microsoft.com (928 Queries)',
+		);
+		expect(mapKeyValuePairToString(piHoleTopItemsData.top_ads, 1)).toBe(
+			'ichnaea.netflix.com (647 Queries)',
+		);
+	});
 });
