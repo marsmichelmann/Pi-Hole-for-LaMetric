@@ -37,29 +37,32 @@ let piHoleSummaryData = {
 };
 
 let piHoleTopItemsData = {
-	top_queries: {
-		'data.iot.us-east-1.amazonaws.com': 3741,
-		'lametric.iderp.io': 2854,
-		'p.ier.re': 2826,
-		'muggli.one': 2532,
-		'spectrum.s3.amazonaws.com': 1483,
-		's3.eu-central-1.wasabisys.com': 972,
-		'diagnostics.meethue.com': 869,
-		'wpad.fritz.box': 784,
-		'pool.ntp.org': 664,
-		'epdg.epc.mnc002.mcc262.pub.3gppnetwork.org': 580,
-	},
-	top_ads: {
-		'web.vortex.data.microsoft.com': 928,
-		'ichnaea.netflix.com': 647,
-		'analytics.ff.avast.com': 635,
-		'mobile.pipe.aria.microsoft.com': 617,
-		'customerevents.netflix.com': 400,
-		'app-measurement.com': 238,
-		'www.google-analytics.com': 193,
-		'www.googletagmanager.com': 165,
-		'activity.windows.com': 162,
-		'www.googleadservices.com': 143,
+	url: 'http://1.1.1.1/admin/api.php?topItems&auth=123',
+	body: {
+		top_queries: {
+			'data.iot.us-east-1.amazonaws.com': 3741,
+			'lametric.iderp.io': 2854,
+			'p.ier.re': 2826,
+			'muggli.one': 2532,
+			'spectrum.s3.amazonaws.com': 1483,
+			's3.eu-central-1.wasabisys.com': 972,
+			'diagnostics.meethue.com': 869,
+			'wpad.fritz.box': 784,
+			'pool.ntp.org': 664,
+			'epdg.epc.mnc002.mcc262.pub.3gppnetwork.org': 580,
+		},
+		top_ads: {
+			'web.vortex.data.microsoft.com': 928,
+			'ichnaea.netflix.com': 647,
+			'analytics.ff.avast.com': 635,
+			'mobile.pipe.aria.microsoft.com': 617,
+			'customerevents.netflix.com': 400,
+			'app-measurement.com': 238,
+			'www.google-analytics.com': 193,
+			'www.googletagmanager.com': 165,
+			'activity.windows.com': 162,
+			'www.googleadservices.com': 143,
+		},
 	},
 };
 
