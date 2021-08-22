@@ -355,7 +355,7 @@ describe('testing pi hole for lametric', () => {
 
 	it('should work integrativly with mocks', async () => {
 		// init
-		console.log =jest.fn();
+		console.log = jest.fn();
 		let urlPiholeLogin =
 			'http://1.1.1.1/admin/api.php?getQueryTypes&auth=123';
 		let urlLametricLogin =
@@ -409,23 +409,27 @@ describe('testing pi hole for lametric', () => {
 		fetchMock.mockReset();
 	});
 
-	// it('should run into an error integrativly', async () => {
-	// 	// init
-	// 	fetchMock.doMock();
-	// 	fetchMock.mockReject(piHoleErrorResponse);
-	// 	const spyConsole = jest.spyOn(console, 'log').mockImplementation();
-	// 	const flushPromises = () => new Promise(setImmediate);
-	//
-	// 	// run
-	// 	main();
-	// 	await flushPromises();
-	//
-	// 	// validation
-	// 	expect(spyConsole).toBeCalledWith(piHoleErrorResponse);
-	// 	spyConsole.mockRestore();
-	// 	fetchMock.dontMock();
-	// });
-	//
+	it('should run into an error integrativly', async () => {
+		// init
+		const spyConsole = jest.spyOn(console, 'log').mockImplementation();
+		let urlPiholeLogin =
+			'http://1.1.1.1/admin/api.php?getQueryTypes&auth=123';
+		fetchMock.get(urlPiholeLogin, {
+			status: 200,
+			body: piHoleErrorResponse,
+		});
+
+		// run
+		main();
+		await new Promise(setImmediate);
+
+		// validation
+		expect(spyConsole).toBeCalledWith(
+			'Unable to connect to Pi-Hole via the supplied IP. Make sure that the IP is correct.',
+		);
+		fetchMock.mockReset();
+	});
+
 	xit("shouldn't log, when debug mode is disabled", () => {
 		const spyConsole = jest.fn();
 		console.log = spyConsole;
