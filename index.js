@@ -148,7 +148,7 @@ let updateLaMetric = () => {
 					).then((laMetricDeviceInfo2) => {
 						updateSpinner.text = `Sending update for "${laMetricDeviceInfo2.name}" @ ${config.LaMetric.IP} to the server...`;
 						fetch(
-							`https://lametric.iderp.io/pihole/${laMetricDeviceInfo2.id}`,
+							`https://lametric.glitch.me/pihole/${laMetricDeviceInfo2.id}`,
 							{
 								method: 'POST',
 								body: body,
@@ -241,7 +241,7 @@ let mapToBody = (
 };
 
 // call main program directly
-// main();
+main();
 
 module.exports = {
 	main,
