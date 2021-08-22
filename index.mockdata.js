@@ -132,27 +132,33 @@ let lametricNotFoundError = {
 	}
 };
 
-let lametricUnauthorizedResponse = {
-	errors: [
-		{
-			message: 'Authorization is required',
-		},
-	],
+let lametricUnauthorized = {
+	url: 'http://2.2.2.2:8080/api/v2/device/apps/com.lametric.58091f88c1c019c8266ccb2ea82e311d',
+	body: {
+		errors: [
+			{
+				message: 'Authorization is required',
+			},
+		],
+	}
 };
 
 let laMetricDeviceInfo = {
-	package: 'com.lametric.58091f88c1c019c8266ccb2ea82e311d',
-	title: 'Pi-Hole Status',
-	triggers: {},
-	vendor: 'iDerp',
-	version: '5',
-	version_code: '5',
-	widgets: {
-		bf1a5601a1b54f05ae735183b35dc9e8: {
-			index: -1,
-			package: 'com.lametric.58091f88c1c019c8266ccb2ea82e311d',
+	url: 'http://2.2.2.2:8080/api/v2/device/apps/com.lametric.58091f88c1c019c8266ccb2ea82e311d',
+	body: {
+		package: 'com.lametric.58091f88c1c019c8266ccb2ea82e311d',
+		title: 'Pi-Hole Status',
+		triggers: {},
+		vendor: 'iDerp',
+		version: '5',
+		version_code: '5',
+		widgets: {
+			bf1a5601a1b54f05ae735183b35dc9e8: {
+				index: -1,
+				package: 'com.lametric.58091f88c1c019c8266ccb2ea82e311d',
+			},
 		},
-	},
+	}
 };
 
 let laMetricDeviceInfo2 = {
@@ -241,6 +247,6 @@ module.exports = {
 	laMetricDeviceInfo,
 	laMetricDeviceInfo2,
 	lametricNotFoundError,
-	lametricUnauthorizedResponse,
+	lametricUnauthorized,
 	laMetricDeviceInfoCorrupt,
 };
