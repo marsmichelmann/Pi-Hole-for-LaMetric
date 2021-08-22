@@ -34,7 +34,7 @@ const { main } = require('./index');
 
 describe('testing pi hole for lametric', () => {
 	beforeEach(() => {
-		//fetchMock.config.fallbackToNetwork = true;
+		fetchMock.config.fallbackToNetwork = true;
 		jest.useFakeTimers('legacy');
 	});
 
