@@ -192,7 +192,6 @@ describe('testing pi hole for lametric', () => {
 		fetchMock.mockReset();
 	});
 
-
 	it('should reject promise, when connection to found lametric is unauthorized on calling updateLaMetric', async () => {
 		// init
 		let urlPiholeData = 'http://1.1.1.1/admin/api.php?summary&auth=123';
@@ -284,29 +283,74 @@ describe('testing pi hole for lametric', () => {
 		fetchMock.mockReset();
 	});
 
-	// it('should call callback function, when update of lametric is successful', async () => {
-	// 	// init
-	// 	fetchMock.doMock();
-	// 	fetchMock.mockResponses(
-	// 		[JSON.stringify(piHoleSummaryData)],
-	// 		[JSON.stringify(piHoleTopItemsData)],
-	// 		[JSON.stringify(piHoleRecentBlockedData)],
-	// 		[JSON.stringify(laMetricDeviceInfo)],
-	// 		[JSON.stringify(laMetricDeviceInfo2)],
-	// 		[JSON.stringify({})], // post request to lametric.iderp.io
-	// 	);
-	// 	const callbackMock = jest.fn(() => {});
-	// 	const flushPromises = () => new Promise(setImmediate);
-	//
-	// 	// run
-	// 	updateLaMetric().then(callbackMock);
-	// 	await flushPromises();
-	//
-	// 	// validation
-	// 	expect(callbackMock).toBeCalled();
-	// 	fetchMock.dontMock();
-	// });
-	//
+	it('should resolve promise, when update of lametric is successful', async () => {
+		// init
+		let urlPiholeData = 'http://1.1.1.1/admin/api.php?summary&auth=123';
+		let urlPiholeData2 = 'http://1.1.1.1/admin/api.php?topItems&auth=123';
+		let urlPiholeData3 =
+			'http://1.1.1.1/admin/api.php?recentBlocked&auth=123';
+		let urlLametricLogin =
+			'http://2.2.2.2:8080/api/v2/device/apps/com.lametric.58091f88c1c019c8266ccb2ea82e311d';
+		let urlLametricData = 'http://2.2.2.2:8080/api/v2/device';
+		let urlLametricUpdate = 'https://lametric.glitch.me/pihole/13233';
+		fetchMock
+			.get(urlPiholeData, {
+				status: 200,
+				body: piHoleSummaryData,
+			})
+			.get(urlPiholeData2, {
+				status: 200,
+				body: piHoleTopItemsData,
+			})
+			.get(urlPiholeData3, {
+				status: 200,
+				body: piHoleRecentBlockedData,
+			})
+			.get(urlLametricLogin, {
+				status: 200,
+				body: lametricNotFoundErrorResponse,
+			})
+			.get(urlLametricData, {
+				status: 200,
+				body: laMetricDeviceInfo2,
+			})
+			.post(urlLametricUpdate, {
+				// post request to lametric.iderp.io
+				status: 200,
+				body: laMetricDeviceInfo2,
+			});
+
+		// run & validation
+		await expect(updateLaMetric()).resolves.toBeUndefined();
+		expect(fetchMock).toBeCalledTimes(6);
+		expect(fetchMock).toBeCalledWith(urlPiholeData, undefined);
+		expect(fetchMock).toBeCalledWith(urlPiholeData2, undefined);
+		expect(fetchMock).toBeCalledWith(urlPiholeData3, undefined);
+		expect(fetchMock).toBeCalledWith(urlLametricLogin, {
+			headers: { Authorization: 'Basic ZGV2OjQ1Ng==' },
+			method: 'GET',
+		});
+		expect(fetchMock).toBeCalledWith(urlLametricData, {
+			headers: { Authorization: 'Basic ZGV2OjQ1Ng==' },
+			method: 'GET',
+		});
+		let body = {
+			blockListSize: '1,399,949',
+			dnsQueriesToday: '47,730',
+			adsBlockedToday: '7,558',
+			totalClientsSeen: '32',
+			totalDNSQueries: '47,730',
+			topQuery: 'data.iot.us-east-1.amazonaws.com (3741 Queries)',
+			topBlockedQuery: 'web.vortex.data.microsoft.com (928 Queries)',
+			lastBlockedQuery: 'analytics.ff.avast.com',
+		};
+		expect(fetchMock).toBeCalledWith(urlLametricUpdate, {
+			method: 'POST',
+			body: body,
+		});
+		fetchMock.mockReset();
+	});
+
 	// it('should work integrativly with mocks', async () => {
 	// 	// init
 	// 	fetchMock.doMock();
