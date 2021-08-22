@@ -240,16 +240,15 @@ describe('testing pi hole for lametric (with debug mode)', () => {
 
 	it('should reject promise, when connection to found lametric is unauthorized on calling updateLaMetric', async () => {
 		// init
-		let urlPiholeData = 'http://1.1.1.1/admin/api.php?summary&auth=123';
 		let urlPiholeData2 = 'http://1.1.1.1/admin/api.php?topItems&auth=123';
 		let urlPiholeData3 =
 			'http://1.1.1.1/admin/api.php?recentBlocked&auth=123';
 		let urlLametricLogin =
 			'http://2.2.2.2:8080/api/v2/device/apps/com.lametric.58091f88c1c019c8266ccb2ea82e311d';
 		fetchMock
-			.get(urlPiholeData, {
+			.get(piHoleSummaryData.url, {
 				status: 200,
-				body: piHoleSummaryData,
+				body: piHoleSummaryData.body,
 			})
 			.get(urlPiholeData2, {
 				status: 200,
@@ -269,7 +268,7 @@ describe('testing pi hole for lametric (with debug mode)', () => {
 			'Connection to Lametric is unauthorized',
 		);
 		expect(fetchMock).toBeCalledTimes(4);
-		expect(fetchMock).toBeCalledWith(urlPiholeData, undefined);
+		expect(fetchMock).toBeCalledWith(piHoleSummaryData.url, undefined);
 		expect(fetchMock).toBeCalledWith(urlPiholeData2, undefined);
 		expect(fetchMock).toBeCalledWith(urlPiholeData3, undefined);
 		expect(fetchMock).toBeCalledWith(urlLametricLogin, {
@@ -281,7 +280,6 @@ describe('testing pi hole for lametric (with debug mode)', () => {
 
 	it('should reject promise, when init of lametric on calling updateLaMetric leads to error response', async () => {
 		// init
-		let urlPiholeData = 'http://1.1.1.1/admin/api.php?summary&auth=123';
 		let urlPiholeData2 = 'http://1.1.1.1/admin/api.php?topItems&auth=123';
 		let urlPiholeData3 =
 			'http://1.1.1.1/admin/api.php?recentBlocked&auth=123';
@@ -289,9 +287,9 @@ describe('testing pi hole for lametric (with debug mode)', () => {
 			'http://2.2.2.2:8080/api/v2/device/apps/com.lametric.58091f88c1c019c8266ccb2ea82e311d';
 		let urlLametricData = 'http://2.2.2.2:8080/api/v2/device';
 		fetchMock
-			.get(urlPiholeData, {
+			.get(piHoleSummaryData.url, {
 				status: 200,
-				body: piHoleSummaryData,
+				body: piHoleSummaryData.body,
 			})
 			.get(urlPiholeData2, {
 				status: 200,
@@ -315,7 +313,7 @@ describe('testing pi hole for lametric (with debug mode)', () => {
 			'Lametric data not available Invalid! Make sure the supplied key is correct.',
 		);
 		expect(fetchMock).toBeCalledTimes(5);
-		expect(fetchMock).toBeCalledWith(urlPiholeData, undefined);
+		expect(fetchMock).toBeCalledWith(piHoleSummaryData.url, undefined);
 		expect(fetchMock).toBeCalledWith(urlPiholeData2, undefined);
 		expect(fetchMock).toBeCalledWith(urlPiholeData3, undefined);
 		expect(fetchMock).toBeCalledWith(urlLametricLogin, {
@@ -332,20 +330,20 @@ describe('testing pi hole for lametric (with debug mode)', () => {
 	it('should map pi hole data', () => {
 		// run
 		let body = mapToBody(
-			piHoleSummaryData,
+			piHoleSummaryData.body,
 			piHoleTopItemsData,
 			piHoleRecentBlockedData,
 		);
 
 		// validation
 		expect(body.blockListSize).toBe(
-			piHoleSummaryData.domains_being_blocked,
+			piHoleSummaryData.body.domains_being_blocked,
 		);
-		expect(body.dnsQueriesToday).toBe(piHoleSummaryData.dns_queries_today);
-		expect(body.adsBlockedToday).toBe(piHoleSummaryData.ads_blocked_today);
-		expect(body.totalClientsSeen).toBe(piHoleSummaryData.clients_ever_seen);
+		expect(body.dnsQueriesToday).toBe(piHoleSummaryData.body.dns_queries_today);
+		expect(body.adsBlockedToday).toBe(piHoleSummaryData.body.ads_blocked_today);
+		expect(body.totalClientsSeen).toBe(piHoleSummaryData.body.clients_ever_seen);
 		expect(body.totalDNSQueries).toBe(
-			piHoleSummaryData.dns_queries_all_types,
+			piHoleSummaryData.body.dns_queries_all_types,
 		);
 		expect(body.topQuery).toBe(
 			'data.iot.us-east-1.amazonaws.com (3741 Queries)',
@@ -374,7 +372,6 @@ describe('testing pi hole for lametric (with debug mode)', () => {
 
 	it('should reject promise, when error occurs on update of lametric', async () => {
 		// init
-		let urlPiholeData = 'http://1.1.1.1/admin/api.php?summary&auth=123';
 		let urlPiholeData2 = 'http://1.1.1.1/admin/api.php?topItems&auth=123';
 		let urlPiholeData3 =
 			'http://1.1.1.1/admin/api.php?recentBlocked&auth=123';
@@ -383,9 +380,9 @@ describe('testing pi hole for lametric (with debug mode)', () => {
 		let urlLametricData = 'http://2.2.2.2:8080/api/v2/device';
 		let urlLametricUpdate = 'https://lametric.glitch.me/pihole/13233';
 		fetchMock
-			.get(urlPiholeData, {
+			.get(piHoleSummaryData.url, {
 				status: 200,
-				body: piHoleSummaryData,
+				body: piHoleSummaryData.body,
 			})
 			.get(urlPiholeData2, {
 				status: 200,
@@ -404,7 +401,7 @@ describe('testing pi hole for lametric (with debug mode)', () => {
 			'error on init of lametric',
 		);
 		expect(fetchMock).toBeCalledTimes(4);
-		expect(fetchMock).toBeCalledWith(urlPiholeData, undefined);
+		expect(fetchMock).toBeCalledWith(piHoleSummaryData.url, undefined);
 		expect(fetchMock).toBeCalledWith(urlPiholeData2, undefined);
 		expect(fetchMock).toBeCalledWith(urlPiholeData3, undefined);
 		expect(fetchMock).toBeCalledWith(urlLametricLogin, {
@@ -416,7 +413,6 @@ describe('testing pi hole for lametric (with debug mode)', () => {
 
 	it('should resolve promise, when update of lametric is successful', async () => {
 		// init
-		let urlPiholeData = 'http://1.1.1.1/admin/api.php?summary&auth=123';
 		let urlPiholeData2 = 'http://1.1.1.1/admin/api.php?topItems&auth=123';
 		let urlPiholeData3 =
 			'http://1.1.1.1/admin/api.php?recentBlocked&auth=123';
@@ -425,9 +421,9 @@ describe('testing pi hole for lametric (with debug mode)', () => {
 		let urlLametricData = 'http://2.2.2.2:8080/api/v2/device';
 		let urlLametricUpdate = 'https://lametric.glitch.me/pihole/13233';
 		fetchMock
-			.get(urlPiholeData, {
+			.get(piHoleSummaryData.url, {
 				status: 200,
-				body: piHoleSummaryData,
+				body: piHoleSummaryData.body,
 			})
 			.get(urlPiholeData2, {
 				status: 200,
@@ -454,7 +450,7 @@ describe('testing pi hole for lametric (with debug mode)', () => {
 		// run & validation
 		await expect(updateLaMetric()).resolves.toBeUndefined();
 		expect(fetchMock).toBeCalledTimes(6);
-		expect(fetchMock).toBeCalledWith(urlPiholeData, undefined);
+		expect(fetchMock).toBeCalledWith(piHoleSummaryData.url, undefined);
 		expect(fetchMock).toBeCalledWith(urlPiholeData2, undefined);
 		expect(fetchMock).toBeCalledWith(urlPiholeData3, undefined);
 		expect(fetchMock).toBeCalledWith(urlLametricLogin, {
@@ -512,7 +508,6 @@ describe('testing pi hole for lametric (with debug mode)', () => {
 			'http://2.2.2.2:8080/api/v2/device/apps/com.lametric.58091f88c1c019c8266ccb2ea82e311d';
 		let urlLametricData = 'http://2.2.2.2:8080/api/v2/device';
 		fetchMock;
-		let urlPiholeData = 'http://1.1.1.1/admin/api.php?summary&auth=123';
 		let urlPiholeData2 = 'http://1.1.1.1/admin/api.php?topItems&auth=123';
 		let urlPiholeData3 =
 			'http://1.1.1.1/admin/api.php?recentBlocked&auth=123';
@@ -531,9 +526,9 @@ describe('testing pi hole for lametric (with debug mode)', () => {
 				body: laMetricDeviceInfo2,
 			})
 			// collect data
-			.get(urlPiholeData, {
+			.get(piHoleSummaryData.url, {
 				status: 200,
-				body: piHoleSummaryData,
+				body: piHoleSummaryData.body,
 			})
 			.get(urlPiholeData2, {
 				status: 200,
@@ -554,7 +549,7 @@ describe('testing pi hole for lametric (with debug mode)', () => {
 		await new Promise(setImmediate);
 
 		// validation
-		// urlPiholeLogin, urlLametricLogin (2x), urlLametricData (2x), urlPiholeData, urlPiholeData2, urlPiholeData3, lametric.iderp.io
+		// urlPiholeLogin, urlLametricLogin (2x), urlLametricData (2x), piHoleSummaryData.url, urlPiholeData2, urlPiholeData3, lametric.iderp.io
 		expect(fetchMock).toBeCalledTimes(9);
 		fetchMock.mockReset();
 	});
