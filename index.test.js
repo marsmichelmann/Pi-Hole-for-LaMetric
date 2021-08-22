@@ -7,6 +7,9 @@ const {
 	piHoleTopItemsData,
 	piHoleRecentBlockedData,
 	lametricNotFoundErrorResponse,
+	lametricUnauthorizedResponse,
+	laMetricDeviceInfo,
+	laMetricDeviceInfo2,
 } = require('./index.mockdata');
 
 // import private functions to test
@@ -20,10 +23,6 @@ const fetchWithAuth = require('./index.js').__get__('fetchWithAuth');
 const laMetricTest = require('./index.js').__get__('laMetricTest');
 
 // const { main } = require('./index');
-
-// const { lametricUnauthorizedResponse } = require('./index.mockdata');
-// const { laMetricDeviceInfo } = require('./index.mockdata');
-// const { laMetricDeviceInfo2 } = require('./index.mockdata');
 
 // mock fetch
 const fetchMock = require('node-fetch');
@@ -126,15 +125,15 @@ describe('testing pi hole for lametric', () => {
 
 	it('should reject promise, when init of lametric leads to error response', async () => {
 		// init
-		let url =
+		let urlLametricLogin =
 			'http://2.2.2.2:8080/api/v2/device/apps/com.lametric.58091f88c1c019c8266ccb2ea82e311d';
-		let url2 = 'http://2.2.2.2:8080/api/v2/device';
+		let urlLamatricData = 'http://2.2.2.2:8080/api/v2/device';
 		fetchMock
-			.get(url, {
+			.get(urlLametricLogin, {
 				status: 200,
 				body: lametricNotFoundErrorResponse,
 			})
-			.get(url2, {
+			.get(urlLamatricData, {
 				status: 200,
 				body: {},
 			});
@@ -144,52 +143,67 @@ describe('testing pi hole for lametric', () => {
 			'Lametric data not available Invalid! Make sure the supplied key is correct.',
 		);
 		expect(fetchMock).toBeCalledTimes(2);
-		expect(fetchMock).toBeCalledWith(url, {
+		expect(fetchMock).toBeCalledWith(urlLametricLogin, {
 			headers: { Authorization: 'Basic ZGV2OjQ1Ng==' },
 			method: 'GET',
 		});
-		expect(fetchMock).toBeCalledWith(url2, {
+		expect(fetchMock).toBeCalledWith(urlLamatricData, {
 			headers: { Authorization: 'Basic ZGV2OjQ1Ng==' },
 			method: 'GET',
 		});
 		fetchMock.mockReset();
 	});
 
-	// it('should call catch callback function, when connection to found lametric is unauthorized', async () => {
-	// 	// init
-	// 	fetchMock.doMock();
-	// 	fetchMock.mockResponse(JSON.stringify(lametricUnauthorizedResponse));
-	// 	const callbackMock = jest.fn(() => {});
-	// 	const flushPromises = () => new Promise(setImmediate);
-	//
-	// 	// run
-	// 	laMetricTest().catch(callbackMock);
-	// 	await flushPromises();
-	//
-	// 	// validation
-	// 	expect(callbackMock).toBeCalled();
-	// 	fetchMock.dontMock();
-	// });
-	//
-	// it('should call callback function, when init of lametric is successful', async () => {
-	// 	// init
-	// 	fetchMock.doMock();
-	// 	fetchMock.mockResponses(
-	// 		[JSON.stringify(laMetricDeviceInfo)],
-	// 		[JSON.stringify(laMetricDeviceInfo2)],
-	// 	);
-	// 	const callbackMock = jest.fn(() => {});
-	// 	const flushPromises = () => new Promise(setImmediate);
-	//
-	// 	// run
-	// 	laMetricTest().then(callbackMock);
-	// 	await flushPromises();
-	//
-	// 	// validation
-	// 	expect(callbackMock).toBeCalled();
-	// 	fetchMock.dontMock();
-	// });
-	//
+	it('should reject promise, when connection to found lametric is unauthorized', async () => {
+		// init
+		let url =
+			'http://2.2.2.2:8080/api/v2/device/apps/com.lametric.58091f88c1c019c8266ccb2ea82e311d';
+		fetchMock.get(url, {
+			status: 200,
+			body: lametricUnauthorizedResponse,
+		});
+
+		// run & validation
+		await expect(laMetricTest()).rejects.toEqual(
+			'Connection to Lametric is unauthorized',
+		);
+		expect(fetchMock).toBeCalledTimes(1);
+		expect(fetchMock).toBeCalledWith(url, {
+			headers: { Authorization: 'Basic ZGV2OjQ1Ng==' },
+			method: 'GET',
+		});
+		fetchMock.mockReset();
+	});
+
+	it('should resolve promise, when init of lametric is successful', async () => {
+		// init
+		let urlLametricLogin =
+			'http://2.2.2.2:8080/api/v2/device/apps/com.lametric.58091f88c1c019c8266ccb2ea82e311d';
+		let urlLametricData = 'http://2.2.2.2:8080/api/v2/device';
+		fetchMock
+			.get(urlLametricLogin, {
+				status: 200,
+				body: laMetricDeviceInfo,
+			})
+			.get(urlLametricData, {
+				status: 200,
+				body: laMetricDeviceInfo2,
+			});
+
+		// run & validation
+		await expect(laMetricTest()).resolves.toBeUndefined();
+		expect(fetchMock).toBeCalledTimes(2);
+		expect(fetchMock).toBeCalledWith(urlLametricLogin, {
+			headers: { Authorization: 'Basic ZGV2OjQ1Ng==' },
+			method: 'GET',
+		});
+		expect(fetchMock).toBeCalledWith(urlLametricData, {
+			headers: { Authorization: 'Basic ZGV2OjQ1Ng==' },
+			method: 'GET',
+		});
+		fetchMock.mockReset();
+	});
+
 	// it('should call catch callback function, when init of lametric on calling updateLaMetric leads to error response', async () => {
 	// 	// init
 	// 	fetchMock.doMock();

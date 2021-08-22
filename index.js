@@ -82,7 +82,7 @@ let laMetricTest = () => {
 		)
 			.then((laMetricDeviceInfo) => {
 				if (isUnauthorized(laMetricDeviceInfo)) {
-					reject('Connection to Lametric is unauthorized');
+					return reject('Connection to Lametric is unauthorized');
 				}
 				fetchWithAuth(
 					`http://${config.LaMetric.IP}:8080/api/v2/device`,
