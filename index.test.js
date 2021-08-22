@@ -12,6 +12,13 @@ const {
 	laMetricDeviceInfo2,
 } = require('./index.mockdata');
 
+// mock fetch
+const fetchMock = require('node-fetch');
+jest.mock('node-fetch', () => require('fetch-mock-jest').sandbox());
+
+// mock config
+jest.mock('./config.json', () => require('./index.mockdata').mockConfig);
+
 // import private functions to test
 const logIfDebug = require('./index.js').__get__('logIfDebug');
 const piHoleTest = require('./index.js').__get__('piHoleTest');
@@ -20,23 +27,19 @@ const mapKeyValuePairToString = require('./index.js').__get__(
 	'mapKeyValuePairToString',
 );
 const startUpdateTimer = require('./index.js').__get__('startUpdateTimer');
-const fetchWithAuth = require('./index.js').__get__('fetchWithAuth');
 const laMetricTest = require('./index.js').__get__('laMetricTest');
 const updateLaMetric = require('./index.js').__get__('updateLaMetric');
-
-// const { main } = require('./index');
-
-// mock fetch
-const fetchMock = require('node-fetch');
-jest.mock('node-fetch', () => require('fetch-mock-jest').sandbox());
-
-// mock config
-jest.mock('./config.json', () => require('./index.mockdata').mockConfig);
+const fetchWithAuth = require('./index.js').__get__('fetchWithAuth');
+const { main } = require('./index');
 
 describe('testing pi hole for lametric', () => {
 	beforeEach(() => {
 		//fetchMock.config.fallbackToNetwork = true;
 		jest.useFakeTimers('legacy');
+	});
+
+	afterEach(() => {
+		jest.clearAllTimers();
 	});
 
 	it('should handle interval timer', async () => {
@@ -60,7 +63,6 @@ describe('testing pi hole for lametric', () => {
 
 		// At this point, our 1-second timer should have fired it's callback
 		expect(callbackMock).toBeCalled();
-		jest.clearAllTimers();
 	});
 
 	it('should fetch Json Placeholder via fetchWithAuth', async () => {
@@ -351,32 +353,62 @@ describe('testing pi hole for lametric', () => {
 		fetchMock.mockReset();
 	});
 
-	// it('should work integrativly with mocks', async () => {
-	// 	// init
-	// 	fetchMock.doMock();
-	// 	fetchMock.mockResponses(
-	// 		[JSON.stringify(piHoleResponse)], // init pi hole
-	// 		[JSON.stringify(laMetricDeviceInfo)], // init lametric
-	// 		[JSON.stringify(laMetricDeviceInfo2)],
-	// 		[JSON.stringify(piHoleSummaryData)], // update
-	// 		[JSON.stringify(piHoleTopItemsData)],
-	// 		[JSON.stringify(piHoleRecentBlockedData)],
-	// 		[JSON.stringify(laMetricDeviceInfo)],
-	// 		[JSON.stringify(laMetricDeviceInfo2)],
-	// 		[JSON.stringify({})], // post request to lametric.iderp.io
-	// 	);
-	// 	const flushPromises = () => new Promise(setImmediate);
-	// 	jest.spyOn(console, 'log').mockImplementation(); // ignore logging for unit test
-	//
-	// 	// run
-	// 	main();
-	// 	await flushPromises();
-	//
-	// 	// validation
-	// 	fetchMock.dontMock();
-	// 	jest.clearAllTimers();
-	// });
-	//
+	it('should work integrativly with mocks', async () => {
+		// init
+		console.log =jest.fn();
+		let urlPiholeLogin =
+			'http://1.1.1.1/admin/api.php?getQueryTypes&auth=123';
+		let urlLametricLogin =
+			'http://2.2.2.2:8080/api/v2/device/apps/com.lametric.58091f88c1c019c8266ccb2ea82e311d';
+		let urlLametricData = 'http://2.2.2.2:8080/api/v2/device';
+		fetchMock;
+		let urlPiholeData = 'http://1.1.1.1/admin/api.php?summary&auth=123';
+		let urlPiholeData2 = 'http://1.1.1.1/admin/api.php?topItems&auth=123';
+		let urlPiholeData3 =
+			'http://1.1.1.1/admin/api.php?recentBlocked&auth=123';
+		let urlLametricUpdate = 'https://lametric.glitch.me/pihole/13233';
+
+		fetchMock
+			// init pi hole
+			.get(urlPiholeLogin, { status: 200, body: piHoleResponse })
+			// init lametric (reused for update)
+			.get(urlLametricLogin, {
+				status: 200,
+				body: laMetricDeviceInfo,
+			})
+			.get(urlLametricData, {
+				status: 200,
+				body: laMetricDeviceInfo2,
+			})
+			// collect data
+			.get(urlPiholeData, {
+				status: 200,
+				body: piHoleSummaryData,
+			})
+			.get(urlPiholeData2, {
+				status: 200,
+				body: piHoleTopItemsData,
+			})
+			.get(urlPiholeData3, {
+				status: 200,
+				body: piHoleRecentBlockedData,
+			})
+			// post request to lametric.iderp.io
+			.post(urlLametricUpdate, {
+				status: 200,
+				body: laMetricDeviceInfo2,
+			});
+
+		// run & validation
+		main();
+		await new Promise(setImmediate);
+
+		// validation
+		// urlPiholeLogin, urlLametricLogin (2x), urlLametricData (2x), urlPiholeData, urlPiholeData2, urlPiholeData3, lametric.iderp.io
+		expect(fetchMock).toBeCalledTimes(9);
+		fetchMock.mockReset();
+	});
+
 	// it('should run into an error integrativly', async () => {
 	// 	// init
 	// 	fetchMock.doMock();
