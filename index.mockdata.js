@@ -68,39 +68,45 @@ let piHoleTopItemsData = {
 
 let piHoleRecentBlockedData = 'analytics.ff.avast.com';
 
-let piHoleInvalidResponse = {
-	bla: {
-		'A (IPv4)': 57,
-		'AAAA (IPv6)': 35.62,
-		ANY: 0,
-		SRV: 0.04,
-		SOA: 0,
-		PTR: 1.01,
-		TXT: 0.03,
-		NAPTR: 0,
-		MX: 0,
-		DS: 0,
-		RRSIG: 0,
-		DNSKEY: 0,
-		OTHER: 6.3,
+let piHoleInvalidData = {
+	url: 'http://1.1.1.1/admin/api.php?getQueryTypes&auth=123',
+	body: {
+		bla: {
+			'A (IPv4)': 57,
+			'AAAA (IPv6)': 35.62,
+			ANY: 0,
+			SRV: 0.04,
+			SOA: 0,
+			PTR: 1.01,
+			TXT: 0.03,
+			NAPTR: 0,
+			MX: 0,
+			DS: 0,
+			RRSIG: 0,
+			DNSKEY: 0,
+			OTHER: 6.3,
+		},
 	},
 };
 
-let piHoleResponse = {
-	querytypes: {
-		'A (IPv4)': 11111,
-		'AAAA (IPv6)': 38.46,
-		ANY: 0,
-		SRV: 0.03,
-		SOA: 0.01,
-		PTR: 1.07,
-		TXT: 0.03,
-		NAPTR: 0,
-		MX: 0,
-		DS: 0,
-		RRSIG: 0,
-		DNSKEY: 0,
-		OTHER: 5.89,
+let piHoleLogin = {
+	url: 'http://1.1.1.1/admin/api.php?getQueryTypes&auth=123',
+	body: {
+		querytypes: {
+			'A (IPv4)': 11111,
+			'AAAA (IPv6)': 38.46,
+			ANY: 0,
+			SRV: 0.03,
+			SOA: 0.01,
+			PTR: 1.07,
+			TXT: 0.03,
+			NAPTR: 0,
+			MX: 0,
+			DS: 0,
+			RRSIG: 0,
+			DNSKEY: 0,
+			OTHER: 5.89,
+		},
 	},
 };
 
@@ -223,9 +229,9 @@ module.exports = {
 	piHoleSummaryData,
 	piHoleTopItemsData,
 	piHoleRecentBlockedData,
-	piHoleInvalidResponse,
+	piHoleInvalidData,
 	piHoleErrorResponse,
-	piHoleResponse,
+	piHoleLogin,
 	laMetricDeviceInfo,
 	laMetricDeviceInfo2,
 	lametricNotFoundErrorResponse,

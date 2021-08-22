@@ -1,8 +1,8 @@
 // import mock data
 const {
 	piHoleErrorResponse,
-	piHoleInvalidResponse,
-	piHoleResponse,
+	piHoleInvalidData,
+	piHoleLogin,
 	piHoleSummaryData,
 	piHoleTopItemsData,
 	piHoleRecentBlockedData,
@@ -112,28 +112,32 @@ describe('testing pi hole for lametric (with debug mode)', () => {
 	it('should reject promise, when init of pi hole leads to unexpected response', async () => {
 		// init
 		console.log = jest.fn();
-		let url = 'http://1.1.1.1/admin/api.php?getQueryTypes&auth=123';
-		fetchMock.get(url, { status: 200, body: piHoleInvalidResponse });
+		fetchMock.get(piHoleInvalidData.url, {
+			status: 200,
+			body: piHoleInvalidData.body,
+		});
 
 		// run & validation
 		await expect(piHoleTest()).rejects.toEqual(
 			'Unable to connect to Pi-Hole via the supplied IP. Make sure that the IP is correct.',
 		);
 		expect(fetchMock).toBeCalledTimes(1);
-		expect(fetchMock).toBeCalledWith(url, undefined);
+		expect(fetchMock).toBeCalledWith(piHoleInvalidData.url, undefined);
 		fetchMock.mockReset();
 	});
 
 	it('should resolve promise, when init of pi hole is successful', async () => {
 		// init
 		console.log = jest.fn();
-		let url = 'http://1.1.1.1/admin/api.php?getQueryTypes&auth=123';
-		fetchMock.get(url, { status: 200, body: piHoleResponse });
+		fetchMock.get(piHoleLogin.url, {
+			status: 200,
+			body: piHoleLogin.body,
+		});
 
 		// run & validation
 		await expect(piHoleTest()).resolves.toBeUndefined();
 		expect(fetchMock).toBeCalledTimes(1);
-		expect(fetchMock).toBeCalledWith(url, undefined);
+		expect(fetchMock).toBeCalledWith(piHoleLogin.url, undefined);
 		fetchMock.mockReset();
 	});
 
@@ -337,9 +341,15 @@ describe('testing pi hole for lametric (with debug mode)', () => {
 		expect(body.blockListSize).toBe(
 			piHoleSummaryData.body.domains_being_blocked,
 		);
-		expect(body.dnsQueriesToday).toBe(piHoleSummaryData.body.dns_queries_today);
-		expect(body.adsBlockedToday).toBe(piHoleSummaryData.body.ads_blocked_today);
-		expect(body.totalClientsSeen).toBe(piHoleSummaryData.body.clients_ever_seen);
+		expect(body.dnsQueriesToday).toBe(
+			piHoleSummaryData.body.dns_queries_today,
+		);
+		expect(body.adsBlockedToday).toBe(
+			piHoleSummaryData.body.ads_blocked_today,
+		);
+		expect(body.totalClientsSeen).toBe(
+			piHoleSummaryData.body.clients_ever_seen,
+		);
 		expect(body.totalDNSQueries).toBe(
 			piHoleSummaryData.body.dns_queries_all_types,
 		);
@@ -354,18 +364,18 @@ describe('testing pi hole for lametric (with debug mode)', () => {
 
 	it('should map key value pair', () => {
 		// run & validation
-		expect(mapKeyValuePairToString(piHoleTopItemsData.body.top_queries, 0)).toBe(
-			'data.iot.us-east-1.amazonaws.com (3741 Queries)',
-		);
-		expect(mapKeyValuePairToString(piHoleTopItemsData.body.top_queries, 1)).toBe(
-			'lametric.iderp.io (2854 Queries)',
-		);
-		expect(mapKeyValuePairToString(piHoleTopItemsData.body.top_ads, 0)).toBe(
-			'web.vortex.data.microsoft.com (928 Queries)',
-		);
-		expect(mapKeyValuePairToString(piHoleTopItemsData.body.top_ads, 1)).toBe(
-			'ichnaea.netflix.com (647 Queries)',
-		);
+		expect(
+			mapKeyValuePairToString(piHoleTopItemsData.body.top_queries, 0),
+		).toBe('data.iot.us-east-1.amazonaws.com (3741 Queries)');
+		expect(
+			mapKeyValuePairToString(piHoleTopItemsData.body.top_queries, 1),
+		).toBe('lametric.iderp.io (2854 Queries)');
+		expect(
+			mapKeyValuePairToString(piHoleTopItemsData.body.top_ads, 0),
+		).toBe('web.vortex.data.microsoft.com (928 Queries)');
+		expect(
+			mapKeyValuePairToString(piHoleTopItemsData.body.top_ads, 1),
+		).toBe('ichnaea.netflix.com (647 Queries)');
 	});
 
 	it('should reject promise, when error occurs on update of lametric', async () => {
@@ -498,8 +508,6 @@ describe('testing pi hole for lametric (with debug mode)', () => {
 	it('should work integrativly with mocks', async () => {
 		// init
 		console.log = jest.fn();
-		let urlPiholeLogin =
-			'http://1.1.1.1/admin/api.php?getQueryTypes&auth=123';
 		let urlLametricLogin =
 			'http://2.2.2.2:8080/api/v2/device/apps/com.lametric.58091f88c1c019c8266ccb2ea82e311d';
 		let urlLametricData = 'http://2.2.2.2:8080/api/v2/device';
@@ -510,7 +518,7 @@ describe('testing pi hole for lametric (with debug mode)', () => {
 
 		fetchMock
 			// init pi hole
-			.get(urlPiholeLogin, { status: 200, body: piHoleResponse })
+			.get(piHoleLogin.url, { status: 200, body: piHoleLogin.body })
 			// init lametric (reused for update)
 			.get(urlLametricLogin, {
 				status: 200,
@@ -544,7 +552,7 @@ describe('testing pi hole for lametric (with debug mode)', () => {
 		await new Promise(setImmediate);
 
 		// validation
-		// urlPiholeLogin, urlLametricLogin (2x), urlLametricData (2x), piHoleSummaryData.url, piHoleTopItemsData.url, urlPiholeData3, lametric.iderp.io
+		// piHoleLogin.url, urlLametricLogin (2x), urlLametricData (2x), piHoleSummaryData.url, piHoleTopItemsData.url, urlPiholeData3, lametric.iderp.io
 		expect(fetchMock).toBeCalledTimes(9);
 		fetchMock.mockReset();
 	});
