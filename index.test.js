@@ -126,27 +126,16 @@ describe('testing pi hole for lametric', () => {
 		// init
 		let urlLametricLogin =
 			'http://2.2.2.2:8080/api/v2/device/apps/com.lametric.58091f88c1c019c8266ccb2ea82e311d';
-		let urlLamatricData = 'http://2.2.2.2:8080/api/v2/device';
-		fetchMock
-			.get(urlLametricLogin, {
-				status: 200,
-				body: lametricNotFoundErrorResponse,
-			})
-			.get(urlLamatricData, {
-				status: 200,
-				body: {},
-			});
+		fetchMock.get(urlLametricLogin, {
+			throws: lametricNotFoundErrorResponse,
+		});
 
 		// run & validation
 		await expect(laMetricTest()).rejects.toEqual(
-			'Lametric data not available Invalid! Make sure the supplied key is correct.',
+			lametricNotFoundErrorResponse,
 		);
-		expect(fetchMock).toBeCalledTimes(2);
+		expect(fetchMock).toBeCalledTimes(1);
 		expect(fetchMock).toBeCalledWith(urlLametricLogin, {
-			headers: { Authorization: 'Basic ZGV2OjQ1Ng==' },
-			method: 'GET',
-		});
-		expect(fetchMock).toBeCalledWith(urlLamatricData, {
 			headers: { Authorization: 'Basic ZGV2OjQ1Ng==' },
 			method: 'GET',
 		});
@@ -203,6 +192,48 @@ describe('testing pi hole for lametric', () => {
 		fetchMock.mockReset();
 	});
 
+
+	it('should reject promise, when connection to found lametric is unauthorized on calling updateLaMetric', async () => {
+		// init
+		let urlPiholeData = 'http://1.1.1.1/admin/api.php?summary&auth=123';
+		let urlPiholeData2 = 'http://1.1.1.1/admin/api.php?topItems&auth=123';
+		let urlPiholeData3 =
+			'http://1.1.1.1/admin/api.php?recentBlocked&auth=123';
+		let urlLametricLogin =
+			'http://2.2.2.2:8080/api/v2/device/apps/com.lametric.58091f88c1c019c8266ccb2ea82e311d';
+		fetchMock
+			.get(urlPiholeData, {
+				status: 200,
+				body: piHoleSummaryData,
+			})
+			.get(urlPiholeData2, {
+				status: 200,
+				body: piHoleTopItemsData,
+			})
+			.get(urlPiholeData3, {
+				status: 200,
+				body: piHoleRecentBlockedData,
+			})
+			.get(urlLametricLogin, {
+				status: 200,
+				body: lametricUnauthorizedResponse,
+			});
+
+		// run & validation
+		await expect(updateLaMetric()).rejects.toEqual(
+			'Connection to Lametric is unauthorized',
+		);
+		expect(fetchMock).toBeCalledTimes(4);
+		expect(fetchMock).toBeCalledWith(urlPiholeData, undefined);
+		expect(fetchMock).toBeCalledWith(urlPiholeData2, undefined);
+		expect(fetchMock).toBeCalledWith(urlPiholeData3, undefined);
+		expect(fetchMock).toBeCalledWith(urlLametricLogin, {
+			headers: { Authorization: 'Basic ZGV2OjQ1Ng==' },
+			method: 'GET',
+		});
+		fetchMock.mockReset();
+	});
+
 	it('should reject promise, when init of lametric on calling updateLaMetric leads to error response', async () => {
 		// init
 		let urlPiholeData = 'http://1.1.1.1/admin/api.php?summary&auth=123';
@@ -247,47 +278,6 @@ describe('testing pi hole for lametric', () => {
 			method: 'GET',
 		});
 		expect(fetchMock).toBeCalledWith(urlLametricData, {
-			headers: { Authorization: 'Basic ZGV2OjQ1Ng==' },
-			method: 'GET',
-		});
-		fetchMock.mockReset();
-	});
-
-	it('should reject promise, when connection to found lametric is unauthorized on calling updateLaMetric', async () => {
-		// init
-		let urlPiholeData = 'http://1.1.1.1/admin/api.php?summary&auth=123';
-		let urlPiholeData2 = 'http://1.1.1.1/admin/api.php?topItems&auth=123';
-		let urlPiholeData3 =
-			'http://1.1.1.1/admin/api.php?recentBlocked&auth=123';
-		let urlLametricLogin =
-			'http://2.2.2.2:8080/api/v2/device/apps/com.lametric.58091f88c1c019c8266ccb2ea82e311d';
-		fetchMock
-			.get(urlPiholeData, {
-				status: 200,
-				body: piHoleSummaryData,
-			})
-			.get(urlPiholeData2, {
-				status: 200,
-				body: piHoleTopItemsData,
-			})
-			.get(urlPiholeData3, {
-				status: 200,
-				body: piHoleRecentBlockedData,
-			})
-			.get(urlLametricLogin, {
-				status: 200,
-				body: lametricUnauthorizedResponse,
-			});
-
-		// run & validation
-		await expect(updateLaMetric()).rejects.toEqual(
-			'Connection to Lametric is unauthorized',
-		);
-		expect(fetchMock).toBeCalledTimes(4);
-		expect(fetchMock).toBeCalledWith(urlPiholeData, undefined);
-		expect(fetchMock).toBeCalledWith(urlPiholeData2, undefined);
-		expect(fetchMock).toBeCalledWith(urlPiholeData3, undefined);
-		expect(fetchMock).toBeCalledWith(urlLametricLogin, {
 			headers: { Authorization: 'Basic ZGV2OjQ1Ng==' },
 			method: 'GET',
 		});
