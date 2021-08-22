@@ -153,27 +153,34 @@ let updateLaMetric = () => {
 						`http://${config.LaMetric.IP}:8080/api/v2/device`,
 						laMetricAuthKey,
 					).then((laMetricDeviceInfo2) => {
-						updateSpinner.text = `Sending update for "${laMetricDeviceInfo2.name}" @ ${config.LaMetric.IP} to the server...`;
-						fetch(
-							`https://lametric.glitch.me/pihole/${laMetricDeviceInfo2.id}`,
-							{
-								method: 'POST',
-								body: body,
-							},
-						).then(() => {
-							updateSpinner.succeed(
-								`Sent update for "${
-									laMetricDeviceInfo2.name
-								}" @ ${
-									config.LaMetric.IP
-								} to the server (sent data: "${JSON.stringify(
-									body,
-									null,
-									2,
-								)}")!`,
-							);
-							return resolve();
-						});
+						if (laMetricDeviceInfo2.name) {
+							updateSpinner.text = `Sending update for "${laMetricDeviceInfo2.name}" @ ${config.LaMetric.IP} to the server...`;
+							fetch(
+								`https://lametric.glitch.me/pihole/${laMetricDeviceInfo2.id}`,
+								{
+									method: 'POST',
+									body: body,
+								},
+							).then(() => {
+								updateSpinner.succeed(
+									`Sent update for "${
+										laMetricDeviceInfo2.name
+									}" @ ${
+										config.LaMetric.IP
+									} to the server (sent data: "${JSON.stringify(
+										body,
+										null,
+										2,
+									)}")!`,
+								);
+								return resolve();
+							});
+						} else {
+							let msg =
+								'Lametric data not available Invalid! Make sure the supplied key is correct.';
+							updateSpinner.fail(msg);
+							return reject(msg);
+						}
 					});
 				})
 				.catch((err) => {

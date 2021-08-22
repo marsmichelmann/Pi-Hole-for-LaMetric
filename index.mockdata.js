@@ -2,6 +2,7 @@ let mockConfig = {
 	debugMode: true,
 	PiHole: { IP: '1.1.1.1', AuthKey: '123' },
 	LaMetric: { IP: '2.2.2.2', AuthKey: '456' },
+	updateInterval: 60,
 };
 
 let piHoleSummaryData = {

@@ -19,8 +19,10 @@ const mapToBody = require('./index.js').__get__('mapToBody');
 const mapKeyValuePairToString = require('./index.js').__get__(
 	'mapKeyValuePairToString',
 );
+const startUpdateTimer = require('./index.js').__get__('startUpdateTimer');
 const fetchWithAuth = require('./index.js').__get__('fetchWithAuth');
 const laMetricTest = require('./index.js').__get__('laMetricTest');
+const updateLaMetric = require('./index.js').__get__('updateLaMetric');
 
 // const { main } = require('./index');
 
@@ -32,37 +34,34 @@ jest.mock('node-fetch', () => require('fetch-mock-jest').sandbox());
 jest.mock('./config.json', () => require('./index.mockdata').mockConfig);
 
 describe('testing pi hole for lametric', () => {
-	// const updateLaMetric = require('./index.js').__get__('updateLaMetric');
-	// const startUpdateTimer = require('./index.js').__get__('startUpdateTimer');
-
 	beforeEach(() => {
 		//fetchMock.config.fallbackToNetwork = true;
-		jest.useFakeTimers();
+		jest.useFakeTimers('legacy');
 	});
 
-	// it('should handle interval timer', async () => {
-	// 	// init
-	// 	const callbackMock = jest.fn(() => {});
-	//
-	// 	// run
-	// 	startUpdateTimer(callbackMock);
-	//
-	// 	// At this point in time, there should have been a single call to
-	// 	// setTimeout to schedule in 60 sec.
-	// 	expect(setInterval).toHaveBeenCalledTimes(1);
-	// 	expect(setInterval).toHaveBeenLastCalledWith(
-	// 		expect.any(Function),
-	// 		60000,
-	// 	);
-	//
-	// 	// Fast forward and exhaust only currently pending timers
-	// 	// (but not any new timers that get created during that process)
-	// 	jest.runOnlyPendingTimers();
-	//
-	// 	// At this point, our 1-second timer should have fired it's callback
-	// 	expect(callbackMock).toBeCalled();
-	// 	jest.clearAllTimers();
-	// });
+	it('should handle interval timer', async () => {
+		// init
+		const callbackMock = jest.fn();
+
+		// run
+		startUpdateTimer(callbackMock);
+
+		// At this point in time, there should have been a single call to
+		// setTimeout to schedule in 60 sec.
+		expect(setInterval).toHaveBeenCalledTimes(1);
+		expect(setInterval).toHaveBeenLastCalledWith(
+			expect.any(Function),
+			60000,
+		);
+
+		// Fast forward and exhaust only currently pending timers
+		// (but not any new timers that get created during that process)
+		jest.runOnlyPendingTimers();
+
+		// At this point, our 1-second timer should have fired it's callback
+		expect(callbackMock).toBeCalled();
+		jest.clearAllTimers();
+	});
 
 	it('should fetch Json Placeholder via fetchWithAuth', async () => {
 		// init
@@ -204,27 +203,56 @@ describe('testing pi hole for lametric', () => {
 		fetchMock.mockReset();
 	});
 
-	// it('should call catch callback function, when init of lametric on calling updateLaMetric leads to error response', async () => {
-	// 	// init
-	// 	fetchMock.doMock();
-	// 	fetchMock.mockResponses(
-	// 		[JSON.stringify(piHoleSummaryData)],
-	// 		[JSON.stringify(piHoleTopItemsData)],
-	// 		[JSON.stringify(piHoleRecentBlockedData)],
-	// 	);
-	// 	fetchMock.mockReject(JSON.stringify(lametricNotFoundErrorResponse));
-	// 	const callbackMock = jest.fn(() => {});
-	// 	const flushPromises = () => new Promise(setImmediate);
-	//
-	// 	// run
-	// 	updateLaMetric().catch(callbackMock);
-	// 	await flushPromises();
-	//
-	// 	// validation
-	// 	expect(callbackMock).toBeCalled();
-	// 	fetchMock.dontMock();
-	// });
-	//
+	it('should reject promise, when init of lametric on calling updateLaMetric leads to error response', async () => {
+		// init
+		let urlPiholeData = 'http://1.1.1.1/admin/api.php?summary&auth=123';
+		let urlPiholeData2 = 'http://1.1.1.1/admin/api.php?topItems&auth=123';
+		let urlPiholeData3 =
+			'http://1.1.1.1/admin/api.php?recentBlocked&auth=123';
+		let urlLametricLogin =
+			'http://2.2.2.2:8080/api/v2/device/apps/com.lametric.58091f88c1c019c8266ccb2ea82e311d';
+		let urlLametricData = 'http://2.2.2.2:8080/api/v2/device';
+		fetchMock
+			.get(urlPiholeData, {
+				status: 200,
+				body: piHoleSummaryData,
+			})
+			.get(urlPiholeData2, {
+				status: 200,
+				body: piHoleTopItemsData,
+			})
+			.get(urlPiholeData3, {
+				status: 200,
+				body: piHoleRecentBlockedData,
+			})
+			.get(urlLametricLogin, {
+				status: 200,
+				body: lametricNotFoundErrorResponse,
+			})
+			.get(urlLametricData, {
+				status: 200,
+				body: {},
+			});
+
+		// run & validation
+		await expect(updateLaMetric()).rejects.toEqual(
+			'Lametric data not available Invalid! Make sure the supplied key is correct.',
+		);
+		expect(fetchMock).toBeCalledTimes(5);
+		expect(fetchMock).toBeCalledWith(urlPiholeData, undefined);
+		expect(fetchMock).toBeCalledWith(urlPiholeData2, undefined);
+		expect(fetchMock).toBeCalledWith(urlPiholeData3, undefined);
+		expect(fetchMock).toBeCalledWith(urlLametricLogin, {
+			headers: { Authorization: 'Basic ZGV2OjQ1Ng==' },
+			method: 'GET',
+		});
+		expect(fetchMock).toBeCalledWith(urlLametricData, {
+			headers: { Authorization: 'Basic ZGV2OjQ1Ng==' },
+			method: 'GET',
+		});
+		fetchMock.mockReset();
+	});
+
 	// it('should call catch callback function, when connection to found lametric is unauthorized on calling updateLaMetric', async () => {
 	// 	// init
 	// 	fetchMock.doMock();
