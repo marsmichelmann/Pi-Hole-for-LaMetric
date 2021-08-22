@@ -42,6 +42,30 @@ describe('testing pi hole for lametric', () => {
 		jest.clearAllTimers();
 	});
 
+	xit("shouldn't log, when debug mode is disabled", () => {
+		const spyConsole = jest.fn();
+		console.log = spyConsole;
+		mockDebugMode = false;
+
+		// run
+		logIfDebug('test msg');
+
+		// validation
+		expect(spyConsole).toHaveBeenCalledTimes(0);
+	});
+
+	it('should log, if debug mode is enabled', () => {
+		// init
+		const spyConsole = jest.fn();
+		console.log = spyConsole;
+
+		// run
+		logIfDebug('test msg');
+
+		// validation
+		expect(spyConsole).toHaveBeenCalledTimes(1);
+	});
+
 	it('should handle interval timer', async () => {
 		// init
 		const callbackMock = jest.fn();
@@ -285,6 +309,49 @@ describe('testing pi hole for lametric', () => {
 		fetchMock.mockReset();
 	});
 
+	it('should map pi hole data', () => {
+		// run
+		let body = mapToBody(
+			piHoleSummaryData,
+			piHoleTopItemsData,
+			piHoleRecentBlockedData,
+		);
+
+		// validation
+		expect(body.blockListSize).toBe(
+			piHoleSummaryData.domains_being_blocked,
+		);
+		expect(body.dnsQueriesToday).toBe(piHoleSummaryData.dns_queries_today);
+		expect(body.adsBlockedToday).toBe(piHoleSummaryData.ads_blocked_today);
+		expect(body.totalClientsSeen).toBe(piHoleSummaryData.clients_ever_seen);
+		expect(body.totalDNSQueries).toBe(
+			piHoleSummaryData.dns_queries_all_types,
+		);
+		expect(body.topQuery).toBe(
+			'data.iot.us-east-1.amazonaws.com (3741 Queries)',
+		);
+		expect(body.topBlockedQuery).toBe(
+			'web.vortex.data.microsoft.com (928 Queries)',
+		);
+		expect(body.lastBlockedQuery).toBe(piHoleRecentBlockedData);
+	});
+
+	it('should map key value pair', () => {
+		// run & validation
+		expect(mapKeyValuePairToString(piHoleTopItemsData.top_queries, 0)).toBe(
+			'data.iot.us-east-1.amazonaws.com (3741 Queries)',
+		);
+		expect(mapKeyValuePairToString(piHoleTopItemsData.top_queries, 1)).toBe(
+			'lametric.iderp.io (2854 Queries)',
+		);
+		expect(mapKeyValuePairToString(piHoleTopItemsData.top_ads, 0)).toBe(
+			'web.vortex.data.microsoft.com (928 Queries)',
+		);
+		expect(mapKeyValuePairToString(piHoleTopItemsData.top_ads, 1)).toBe(
+			'ichnaea.netflix.com (647 Queries)',
+		);
+	});
+
 	it('should resolve promise, when update of lametric is successful', async () => {
 		// init
 		let urlPiholeData = 'http://1.1.1.1/admin/api.php?summary&auth=123';
@@ -353,6 +420,27 @@ describe('testing pi hole for lametric', () => {
 		fetchMock.mockReset();
 	});
 
+	it('should run into an error integrativly', async () => {
+		// init
+		const spyConsole = jest.spyOn(console, 'log').mockImplementation();
+		let urlPiholeLogin =
+			'http://1.1.1.1/admin/api.php?getQueryTypes&auth=123';
+		fetchMock.get(urlPiholeLogin, {
+			status: 200,
+			body: piHoleErrorResponse,
+		});
+
+		// run
+		main();
+		await new Promise(setImmediate);
+
+		// validation
+		expect(spyConsole).toBeCalledWith(
+			'Unable to connect to Pi-Hole via the supplied IP. Make sure that the IP is correct.',
+		);
+		fetchMock.mockReset();
+	});
+
 	it('should work integrativly with mocks', async () => {
 		// init
 		console.log = jest.fn();
@@ -407,93 +495,5 @@ describe('testing pi hole for lametric', () => {
 		// urlPiholeLogin, urlLametricLogin (2x), urlLametricData (2x), urlPiholeData, urlPiholeData2, urlPiholeData3, lametric.iderp.io
 		expect(fetchMock).toBeCalledTimes(9);
 		fetchMock.mockReset();
-	});
-
-	it('should run into an error integrativly', async () => {
-		// init
-		const spyConsole = jest.spyOn(console, 'log').mockImplementation();
-		let urlPiholeLogin =
-			'http://1.1.1.1/admin/api.php?getQueryTypes&auth=123';
-		fetchMock.get(urlPiholeLogin, {
-			status: 200,
-			body: piHoleErrorResponse,
-		});
-
-		// run
-		main();
-		await new Promise(setImmediate);
-
-		// validation
-		expect(spyConsole).toBeCalledWith(
-			'Unable to connect to Pi-Hole via the supplied IP. Make sure that the IP is correct.',
-		);
-		fetchMock.mockReset();
-	});
-
-	xit("shouldn't log, when debug mode is disabled", () => {
-		const spyConsole = jest.fn();
-		console.log = spyConsole;
-		mockDebugMode = false;
-
-		// run
-		logIfDebug('test msg');
-
-		// validation
-		expect(spyConsole).toHaveBeenCalledTimes(0);
-	});
-
-	it('should log, if debug mode is enabled', () => {
-		// init
-		const spyConsole = jest.fn();
-		console.log = spyConsole;
-
-		// run
-		logIfDebug('test msg');
-
-		// validation
-		expect(spyConsole).toHaveBeenCalledTimes(1);
-	});
-
-	it('should map pi hole data', () => {
-		// run
-		let body = mapToBody(
-			piHoleSummaryData,
-			piHoleTopItemsData,
-			piHoleRecentBlockedData,
-		);
-
-		// validation
-		expect(body.blockListSize).toBe(
-			piHoleSummaryData.domains_being_blocked,
-		);
-		expect(body.dnsQueriesToday).toBe(piHoleSummaryData.dns_queries_today);
-		expect(body.adsBlockedToday).toBe(piHoleSummaryData.ads_blocked_today);
-		expect(body.totalClientsSeen).toBe(piHoleSummaryData.clients_ever_seen);
-		expect(body.totalDNSQueries).toBe(
-			piHoleSummaryData.dns_queries_all_types,
-		);
-		expect(body.topQuery).toBe(
-			'data.iot.us-east-1.amazonaws.com (3741 Queries)',
-		);
-		expect(body.topBlockedQuery).toBe(
-			'web.vortex.data.microsoft.com (928 Queries)',
-		);
-		expect(body.lastBlockedQuery).toBe(piHoleRecentBlockedData);
-	});
-
-	it('should map key value pair', () => {
-		// run & validation
-		expect(mapKeyValuePairToString(piHoleTopItemsData.top_queries, 0)).toBe(
-			'data.iot.us-east-1.amazonaws.com (3741 Queries)',
-		);
-		expect(mapKeyValuePairToString(piHoleTopItemsData.top_queries, 1)).toBe(
-			'lametric.iderp.io (2854 Queries)',
-		);
-		expect(mapKeyValuePairToString(piHoleTopItemsData.top_ads, 0)).toBe(
-			'web.vortex.data.microsoft.com (928 Queries)',
-		);
-		expect(mapKeyValuePairToString(piHoleTopItemsData.top_ads, 1)).toBe(
-			'ichnaea.netflix.com (647 Queries)',
-		);
 	});
 });
