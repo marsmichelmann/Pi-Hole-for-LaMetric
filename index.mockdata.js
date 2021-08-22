@@ -208,6 +208,10 @@ let laMetricDeviceInfo2 = {
 	},
 };
 
+let laMetricDeviceInfoCorrupt = {
+	bla: '4711',
+};
+
 module.exports = {
 	mockConfig,
 	piHoleSummaryData,
@@ -220,4 +224,5 @@ module.exports = {
 	laMetricDeviceInfo2,
 	lametricNotFoundErrorResponse,
 	lametricUnauthorizedResponse,
+	laMetricDeviceInfoCorrupt,
 };

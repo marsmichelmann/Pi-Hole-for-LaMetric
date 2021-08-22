@@ -10,6 +10,7 @@ const {
 	lametricUnauthorizedResponse,
 	laMetricDeviceInfo,
 	laMetricDeviceInfo2,
+	laMetricDeviceInfoCorrupt,
 } = require('./index.mockdata');
 
 // mock fetch
@@ -17,7 +18,6 @@ const fetchMock = require('node-fetch');
 jest.mock('node-fetch', () => require('fetch-mock-jest').sandbox());
 
 // mock config
-const config = require(`./config.json`);
 jest.mock('./config.json', () => require('./index.mockdata').mockConfig);
 
 // import private functions to test
@@ -190,6 +190,37 @@ describe('testing pi hole for lametric', () => {
 		fetchMock.mockReset();
 	});
 
+	it('should reject promise, when init of lametric is successful, but data is corrupt', async () => {
+		// init
+		let urlLametricLogin =
+			'http://2.2.2.2:8080/api/v2/device/apps/com.lametric.58091f88c1c019c8266ccb2ea82e311d';
+		let urlLametricData = 'http://2.2.2.2:8080/api/v2/device';
+		fetchMock
+			.get(urlLametricLogin, {
+				status: 200,
+				body: laMetricDeviceInfo,
+			})
+			.get(urlLametricData, {
+				status: 200,
+				body: laMetricDeviceInfoCorrupt,
+			});
+
+		// run & validation
+		await expect(laMetricTest()).rejects.toEqual(
+			'Lametric data is corrupt!',
+		);
+		expect(fetchMock).toBeCalledTimes(2);
+		expect(fetchMock).toBeCalledWith(urlLametricLogin, {
+			headers: { Authorization: 'Basic ZGV2OjQ1Ng==' },
+			method: 'GET',
+		});
+		expect(fetchMock).toBeCalledWith(urlLametricData, {
+			headers: { Authorization: 'Basic ZGV2OjQ1Ng==' },
+			method: 'GET',
+		});
+		fetchMock.mockReset();
+	});
+
 	it('should resolve promise, when init of lametric is successful', async () => {
 		// init
 		let urlLametricLogin =
@@ -351,6 +382,48 @@ describe('testing pi hole for lametric', () => {
 		expect(mapKeyValuePairToString(piHoleTopItemsData.top_ads, 1)).toBe(
 			'ichnaea.netflix.com (647 Queries)',
 		);
+	});
+
+	it('should reject promise, when error occurs on update of lametric', async () => {
+		// init
+		let urlPiholeData = 'http://1.1.1.1/admin/api.php?summary&auth=123';
+		let urlPiholeData2 = 'http://1.1.1.1/admin/api.php?topItems&auth=123';
+		let urlPiholeData3 =
+			'http://1.1.1.1/admin/api.php?recentBlocked&auth=123';
+		let urlLametricLogin =
+			'http://2.2.2.2:8080/api/v2/device/apps/com.lametric.58091f88c1c019c8266ccb2ea82e311d';
+		let urlLametricData = 'http://2.2.2.2:8080/api/v2/device';
+		let urlLametricUpdate = 'https://lametric.glitch.me/pihole/13233';
+		fetchMock
+			.get(urlPiholeData, {
+				status: 200,
+				body: piHoleSummaryData,
+			})
+			.get(urlPiholeData2, {
+				status: 200,
+				body: piHoleTopItemsData,
+			})
+			.get(urlPiholeData3, {
+				status: 200,
+				body: piHoleRecentBlockedData,
+			})
+			.get(urlLametricLogin, {
+				throws: 'error on init of lametric',
+			});
+
+		// run & validation
+		await expect(updateLaMetric()).rejects.toEqual(
+			'error on init of lametric',
+		);
+		expect(fetchMock).toBeCalledTimes(4);
+		expect(fetchMock).toBeCalledWith(urlPiholeData, undefined);
+		expect(fetchMock).toBeCalledWith(urlPiholeData2, undefined);
+		expect(fetchMock).toBeCalledWith(urlPiholeData3, undefined);
+		expect(fetchMock).toBeCalledWith(urlLametricLogin, {
+			headers: { Authorization: 'Basic ZGV2OjQ1Ng==' },
+			method: 'GET',
+		});
+		fetchMock.mockReset();
 	});
 
 	it('should resolve promise, when update of lametric is successful', async () => {
