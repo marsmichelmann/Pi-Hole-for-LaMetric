@@ -94,8 +94,7 @@ let laMetricTest = () => {
 						);
 						return resolve();
 					} else {
-						let msg =
-							'Lametric data is corrupt!';
+						let msg = 'Lametric data is corrupt!';
 						spinner.fail(msg);
 						return reject(msg);
 					}
