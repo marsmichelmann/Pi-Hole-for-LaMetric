@@ -23,11 +23,8 @@ const mapKeyValuePairToString = require('./index.js').__get__(
 const fetchMock = require('node-fetch');
 jest.mock('node-fetch', () => require('fetch-mock-jest').sandbox());
 
-jest.mock('./config.json', () => ({
-	debugMode: true,
-	PiHole: { IP: '1.1.1.1', AuthKey: '123' },
-	LaMetric: { IP: '2.2.2.2', AuthKey: '456' },
-}));
+// mock config
+jest.mock('./config.json', () => require('./index.mockdata').mockConfig);
 
 describe('testing pi hole for lametric', () => {
 	// const fetchWithAuth = require('./index.js').__get__('fetchWithAuth');

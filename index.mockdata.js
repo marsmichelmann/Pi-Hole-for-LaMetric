@@ -1,3 +1,9 @@
+let mockConfig = {
+	debugMode: true,
+	PiHole: { IP: '1.1.1.1', AuthKey: '123' },
+	LaMetric: { IP: '2.2.2.2', AuthKey: '456' },
+};
+
 let piHoleSummaryData = {
 	domains_being_blocked: '1,399,949',
 	dns_queries_today: '47,730',
@@ -202,6 +208,7 @@ let laMetricDeviceInfo2 = {
 };
 
 module.exports = {
+	mockConfig,
 	piHoleSummaryData,
 	piHoleTopItemsData,
 	piHoleRecentBlockedData,
