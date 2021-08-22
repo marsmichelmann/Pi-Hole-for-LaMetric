@@ -259,7 +259,10 @@ describe('testing pi hole for lametric (with debug mode)', () => {
 		expect(fetchMock).toBeCalledTimes(4);
 		expect(fetchMock).toBeCalledWith(piHoleSummaryData.url, undefined);
 		expect(fetchMock).toBeCalledWith(piHoleTopItemsData.url, undefined);
-		expect(fetchMock).toBeCalledWith(piHoleRecentBlockedData.url, undefined);
+		expect(fetchMock).toBeCalledWith(
+			piHoleRecentBlockedData.url,
+			undefined,
+		);
 		expect(fetchMock).toBeCalledWith(laMetricDeviceInfo.url, {
 			headers: { Authorization: 'Basic ZGV2OjQ1Ng==' },
 			method: 'GET',
@@ -298,7 +301,10 @@ describe('testing pi hole for lametric (with debug mode)', () => {
 		expect(fetchMock).toBeCalledTimes(5);
 		expect(fetchMock).toBeCalledWith(piHoleSummaryData.url, undefined);
 		expect(fetchMock).toBeCalledWith(piHoleTopItemsData.url, undefined);
-		expect(fetchMock).toBeCalledWith(piHoleRecentBlockedData.url, undefined);
+		expect(fetchMock).toBeCalledWith(
+			piHoleRecentBlockedData.url,
+			undefined,
+		);
 		expect(fetchMock).toBeCalledWith(lametricNotFoundError.url, {
 			headers: { Authorization: 'Basic ZGV2OjQ1Ng==' },
 			method: 'GET',
@@ -385,7 +391,10 @@ describe('testing pi hole for lametric (with debug mode)', () => {
 		expect(fetchMock).toBeCalledTimes(4);
 		expect(fetchMock).toBeCalledWith(piHoleSummaryData.url, undefined);
 		expect(fetchMock).toBeCalledWith(piHoleTopItemsData.url, undefined);
-		expect(fetchMock).toBeCalledWith(piHoleRecentBlockedData.url, undefined);
+		expect(fetchMock).toBeCalledWith(
+			piHoleRecentBlockedData.url,
+			undefined,
+		);
 		expect(fetchMock).toBeCalledWith(laMetricDeviceInfo.url, {
 			headers: { Authorization: 'Basic ZGV2OjQ1Ng==' },
 			method: 'GET',
@@ -427,7 +436,10 @@ describe('testing pi hole for lametric (with debug mode)', () => {
 		expect(fetchMock).toBeCalledTimes(6);
 		expect(fetchMock).toBeCalledWith(piHoleSummaryData.url, undefined);
 		expect(fetchMock).toBeCalledWith(piHoleTopItemsData.url, undefined);
-		expect(fetchMock).toBeCalledWith(piHoleRecentBlockedData.url, undefined);
+		expect(fetchMock).toBeCalledWith(
+			piHoleRecentBlockedData.url,
+			undefined,
+		);
 		expect(fetchMock).toBeCalledWith(laMetricDeviceInfo.url, {
 			headers: { Authorization: 'Basic ZGV2OjQ1Ng==' },
 			method: 'GET',
