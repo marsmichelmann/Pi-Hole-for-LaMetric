@@ -48,11 +48,11 @@ let piHoleTest = () => {
 				return Promise.reject();
 			}
 		})
-		.catch((err) => {
-			spinner.fail(
-				'Unable to connect to Pi-Hole via the supplied IP. Make sure that the IP is correct.',
-			);
-			return Promise.reject(err);
+		.catch(() => {
+			let msg =
+				'Unable to connect to Pi-Hole via the supplied IP. Make sure that the IP is correct.';
+			spinner.fail(msg);
+			return Promise.reject(msg);
 		});
 };
 
