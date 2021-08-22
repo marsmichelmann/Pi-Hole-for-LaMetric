@@ -66,7 +66,10 @@ let piHoleTopItemsData = {
 	},
 };
 
-let piHoleRecentBlockedData = 'analytics.ff.avast.com';
+let piHoleRecentBlockedData = {
+	url: 'http://1.1.1.1/admin/api.php?recentBlocked&auth=123',
+	body: 'analytics.ff.avast.com',
+};
 
 let piHoleInvalidData = {
 	url: 'http://1.1.1.1/admin/api.php?getQueryTypes&auth=123',

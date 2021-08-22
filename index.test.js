@@ -233,8 +233,6 @@ describe('testing pi hole for lametric (with debug mode)', () => {
 
 	it('should reject promise, when connection to found lametric is unauthorized on calling updateLaMetric', async () => {
 		// init
-		let urlPiholeData3 =
-			'http://1.1.1.1/admin/api.php?recentBlocked&auth=123';
 		fetchMock
 			.get(piHoleSummaryData.url, {
 				status: 200,
@@ -244,9 +242,9 @@ describe('testing pi hole for lametric (with debug mode)', () => {
 				status: 200,
 				body: piHoleTopItemsData.body,
 			})
-			.get(urlPiholeData3, {
+			.get(piHoleRecentBlockedData.url, {
 				status: 200,
-				body: piHoleRecentBlockedData,
+				body: piHoleRecentBlockedData.body,
 			})
 			.get(laMetricDeviceInfo.url, {
 				status: 200,
@@ -260,7 +258,7 @@ describe('testing pi hole for lametric (with debug mode)', () => {
 		expect(fetchMock).toBeCalledTimes(4);
 		expect(fetchMock).toBeCalledWith(piHoleSummaryData.url, undefined);
 		expect(fetchMock).toBeCalledWith(piHoleTopItemsData.url, undefined);
-		expect(fetchMock).toBeCalledWith(urlPiholeData3, undefined);
+		expect(fetchMock).toBeCalledWith(piHoleRecentBlockedData.url, undefined);
 		expect(fetchMock).toBeCalledWith(laMetricDeviceInfo.url, {
 			headers: { Authorization: 'Basic ZGV2OjQ1Ng==' },
 			method: 'GET',
@@ -270,8 +268,6 @@ describe('testing pi hole for lametric (with debug mode)', () => {
 
 	it('should reject promise, when init of lametric on calling updateLaMetric leads to error response', async () => {
 		// init
-		let urlPiholeData3 =
-			'http://1.1.1.1/admin/api.php?recentBlocked&auth=123';
 		fetchMock
 			.get(piHoleSummaryData.url, {
 				status: 200,
@@ -281,9 +277,9 @@ describe('testing pi hole for lametric (with debug mode)', () => {
 				status: 200,
 				body: piHoleTopItemsData.body,
 			})
-			.get(urlPiholeData3, {
+			.get(piHoleRecentBlockedData.url, {
 				status: 200,
-				body: piHoleRecentBlockedData,
+				body: piHoleRecentBlockedData.body,
 			})
 			.get(lametricNotFoundError.url, {
 				status: 200,
@@ -301,7 +297,7 @@ describe('testing pi hole for lametric (with debug mode)', () => {
 		expect(fetchMock).toBeCalledTimes(5);
 		expect(fetchMock).toBeCalledWith(piHoleSummaryData.url, undefined);
 		expect(fetchMock).toBeCalledWith(piHoleTopItemsData.url, undefined);
-		expect(fetchMock).toBeCalledWith(urlPiholeData3, undefined);
+		expect(fetchMock).toBeCalledWith(piHoleRecentBlockedData.url, undefined);
 		expect(fetchMock).toBeCalledWith(lametricNotFoundError.url, {
 			headers: { Authorization: 'Basic ZGV2OjQ1Ng==' },
 			method: 'GET',
@@ -318,7 +314,7 @@ describe('testing pi hole for lametric (with debug mode)', () => {
 		let body = mapToBody(
 			piHoleSummaryData.body,
 			piHoleTopItemsData.body,
-			piHoleRecentBlockedData,
+			piHoleRecentBlockedData.body,
 		);
 
 		// validation
@@ -343,7 +339,7 @@ describe('testing pi hole for lametric (with debug mode)', () => {
 		expect(body.topBlockedQuery).toBe(
 			'web.vortex.data.microsoft.com (928 Queries)',
 		);
-		expect(body.lastBlockedQuery).toBe(piHoleRecentBlockedData);
+		expect(body.lastBlockedQuery).toBe(piHoleRecentBlockedData.body);
 	});
 
 	it('should map key value pair', () => {
@@ -364,8 +360,6 @@ describe('testing pi hole for lametric (with debug mode)', () => {
 
 	it('should reject promise, when error occurs on update of lametric', async () => {
 		// init
-		let urlPiholeData3 =
-			'http://1.1.1.1/admin/api.php?recentBlocked&auth=123';
 		fetchMock
 			.get(piHoleSummaryData.url, {
 				status: 200,
@@ -375,9 +369,9 @@ describe('testing pi hole for lametric (with debug mode)', () => {
 				status: 200,
 				body: piHoleTopItemsData.body,
 			})
-			.get(urlPiholeData3, {
+			.get(piHoleRecentBlockedData.url, {
 				status: 200,
-				body: piHoleRecentBlockedData,
+				body: piHoleRecentBlockedData.body,
 			})
 			.get(laMetricDeviceInfo.url, {
 				throws: 'error on init of lametric',
@@ -390,7 +384,7 @@ describe('testing pi hole for lametric (with debug mode)', () => {
 		expect(fetchMock).toBeCalledTimes(4);
 		expect(fetchMock).toBeCalledWith(piHoleSummaryData.url, undefined);
 		expect(fetchMock).toBeCalledWith(piHoleTopItemsData.url, undefined);
-		expect(fetchMock).toBeCalledWith(urlPiholeData3, undefined);
+		expect(fetchMock).toBeCalledWith(piHoleRecentBlockedData.url, undefined);
 		expect(fetchMock).toBeCalledWith(laMetricDeviceInfo.url, {
 			headers: { Authorization: 'Basic ZGV2OjQ1Ng==' },
 			method: 'GET',
@@ -400,8 +394,6 @@ describe('testing pi hole for lametric (with debug mode)', () => {
 
 	it('should resolve promise, when update of lametric is successful', async () => {
 		// init
-		let urlPiholeData3 =
-			'http://1.1.1.1/admin/api.php?recentBlocked&auth=123';
 		let urlLametricUpdate = 'https://lametric.glitch.me/pihole/13233';
 		fetchMock
 			.get(piHoleSummaryData.url, {
@@ -412,9 +404,9 @@ describe('testing pi hole for lametric (with debug mode)', () => {
 				status: 200,
 				body: piHoleTopItemsData.body,
 			})
-			.get(urlPiholeData3, {
+			.get(piHoleRecentBlockedData.url, {
 				status: 200,
-				body: piHoleRecentBlockedData,
+				body: piHoleRecentBlockedData.body,
 			})
 			.get(lametricNotFoundError.url, {
 				status: 200,
@@ -435,7 +427,7 @@ describe('testing pi hole for lametric (with debug mode)', () => {
 		expect(fetchMock).toBeCalledTimes(6);
 		expect(fetchMock).toBeCalledWith(piHoleSummaryData.url, undefined);
 		expect(fetchMock).toBeCalledWith(piHoleTopItemsData.url, undefined);
-		expect(fetchMock).toBeCalledWith(urlPiholeData3, undefined);
+		expect(fetchMock).toBeCalledWith(piHoleRecentBlockedData.url, undefined);
 		expect(fetchMock).toBeCalledWith(laMetricDeviceInfo.url, {
 			headers: { Authorization: 'Basic ZGV2OjQ1Ng==' },
 			method: 'GET',
@@ -483,9 +475,6 @@ describe('testing pi hole for lametric (with debug mode)', () => {
 	it('should work integrativly with mocks', async () => {
 		// init
 		console.log = jest.fn();
-		fetchMock;
-		let urlPiholeData3 =
-			'http://1.1.1.1/admin/api.php?recentBlocked&auth=123';
 		let urlLametricUpdate = 'https://lametric.glitch.me/pihole/13233';
 
 		fetchMock
@@ -509,9 +498,9 @@ describe('testing pi hole for lametric (with debug mode)', () => {
 				status: 200,
 				body: piHoleTopItemsData.body,
 			})
-			.get(urlPiholeData3, {
+			.get(piHoleRecentBlockedData.url, {
 				status: 200,
-				body: piHoleRecentBlockedData,
+				body: piHoleRecentBlockedData.body,
 			})
 			// post request to lametric.iderp.io
 			.post(urlLametricUpdate, {
@@ -524,7 +513,7 @@ describe('testing pi hole for lametric (with debug mode)', () => {
 		await new Promise(setImmediate);
 
 		// validation
-		// piHoleLogin.url, laMetricDeviceInfo.url (2x), laMetricDeviceInfo2.url (2x), piHoleSummaryData.url, piHoleTopItemsData.url, urlPiholeData3, lametric.iderp.io
+		// piHoleLogin.url, laMetricDeviceInfo.url (2x), laMetricDeviceInfo2.url (2x), piHoleSummaryData.url, piHoleTopItemsData.url, piHoleRecentBlockedData.url, lametric.iderp.io
 		expect(fetchMock).toBeCalledTimes(9);
 		fetchMock.mockReset();
 	});
