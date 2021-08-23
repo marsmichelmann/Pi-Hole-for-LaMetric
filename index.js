@@ -1,8 +1,8 @@
 const config = require(`./config.json`);
 const fetch = require('node-fetch');
 const ora = require('ora');
-let laMetricAuthKey = `Basic ${Buffer.from(
-	`dev:${config.LaMetric.AuthKey}`,
+const laMetricAuthKey = `Basic ${Buffer.from(
+	'dev:' + config.LaMetric.AuthKey,
 ).toString('base64')}`;
 
 /**
