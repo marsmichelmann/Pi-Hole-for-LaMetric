@@ -1,14 +1,14 @@
 {
-  "NOTE": "DO NOT CHANGE THE VERSION FIELD",
-  "version": "v2.0.3-Beta",
-  "PiHole": {
-    "IP": "127.0.0.1",
-    "AuthKey": "abc123"
-  },
   "LaMetric": {
     "IP": "127.0.0.1",
     "AuthKey": "def456"
   },
+  "NOTE": "DO NOT CHANGE THE VERSION FIELD",
+  "PiHole": {
+    "IP": "127.0.0.1",
+    "AuthKey": "abc123"
+  },
+  "debugMode": true,
   "updateInterval": 60,
-  "debugMode": true
+  "version": "v2.0.3-Beta"
 }

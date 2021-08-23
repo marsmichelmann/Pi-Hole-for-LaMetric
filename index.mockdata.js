@@ -1,11 +1,11 @@
-let mockConfig = {
+const mockConfig = {
 	debugMode: true,
 	PiHole: { IP: '1.1.1.1', AuthKey: '123' },
 	LaMetric: { IP: '2.2.2.2', AuthKey: '456' },
 	updateInterval: 60,
 };
 
-let piHoleSummaryData = {
+const piHoleSummaryData = {
 	url: 'http://1.1.1.1/admin/api.php?summary&auth=123',
 	body: {
 		domains_being_blocked: '1,399,949',
@@ -36,7 +36,7 @@ let piHoleSummaryData = {
 	},
 };
 
-let piHoleTopItemsData = {
+const piHoleTopItemsData = {
 	url: 'http://1.1.1.1/admin/api.php?topItems&auth=123',
 	body: {
 		top_queries: {
@@ -66,12 +66,12 @@ let piHoleTopItemsData = {
 	},
 };
 
-let piHoleRecentBlockedData = {
+const piHoleRecentBlockedData = {
 	url: 'http://1.1.1.1/admin/api.php?recentBlocked&auth=123',
 	body: 'analytics.ff.avast.com',
 };
 
-let piHoleInvalidData = {
+const piHoleInvalidData = {
 	url: 'http://1.1.1.1/admin/api.php?getQueryTypes&auth=123',
 	body: {
 		bla: {
@@ -92,7 +92,7 @@ let piHoleInvalidData = {
 	},
 };
 
-let piHoleLogin = {
+const piHoleLogin = {
 	url: 'http://1.1.1.1/admin/api.php?getQueryTypes&auth=123',
 	body: {
 		querytypes: {
@@ -113,7 +113,7 @@ let piHoleLogin = {
 	},
 };
 
-let piHoleError = {
+const piHoleError = {
 	url: 'http://1.1.1.1/admin/api.php?getQueryTypes&auth=123',
 	body: {
 		message:
@@ -124,7 +124,7 @@ let piHoleError = {
 	},
 };
 
-let lametricNotFoundError = {
+const lametricNotFoundError = {
 	url: 'http://2.2.2.2:8080/api/v2/device/apps/com.lametric.58091f88c1c019c8266ccb2ea82e311d',
 	body: {
 		message:
@@ -135,7 +135,7 @@ let lametricNotFoundError = {
 	},
 };
 
-let lametricUnauthorized = {
+const lametricUnauthorized = {
 	url: 'http://2.2.2.2:8080/api/v2/device/apps/com.lametric.58091f88c1c019c8266ccb2ea82e311d',
 	body: {
 		errors: [
@@ -146,7 +146,7 @@ let lametricUnauthorized = {
 	},
 };
 
-let laMetricDeviceInfo = {
+const laMetricDeviceInfo = {
 	url: 'http://2.2.2.2:8080/api/v2/device/apps/com.lametric.58091f88c1c019c8266ccb2ea82e311d',
 	body: {
 		package: 'com.lametric.58091f88c1c019c8266ccb2ea82e311d',
@@ -164,7 +164,7 @@ let laMetricDeviceInfo = {
 	},
 };
 
-let laMetricDeviceInfo2 = {
+const laMetricDeviceInfo2 = {
 	url: 'http://2.2.2.2:8080/api/v2/device',
 	body: {
 		audio: {
@@ -238,11 +238,11 @@ let laMetricDeviceInfo2 = {
 	},
 };
 
-let laMetricDeviceInfoCorrupt = {
+const laMetricDeviceInfoCorrupt = {
 	bla: '4711',
 };
 
-let urlLametricUpdate = 'https://lametric.glitch.me/pihole/13233';
+const urlLametricUpdate = 'https://lametric.glitch.me/pihole/13233';
 
 module.exports = {
 	mockConfig,
@@ -257,5 +257,5 @@ module.exports = {
 	lametricNotFoundError,
 	lametricUnauthorized,
 	laMetricDeviceInfoCorrupt,
-	urlLametricUpdate
+	urlLametricUpdate,
 };
