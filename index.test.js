@@ -21,6 +21,12 @@ jest.mock('node-fetch', () => require('fetch-mock-jest').sandbox());
 // mock config
 jest.mock('./config.json', () => require('./index.mockdata').mockConfig);
 
+// mock ora
+const { spinner } = require('./index');
+spinner.start = jest.fn();
+spinner.succeed = jest.fn();
+spinner.fail = jest.fn();
+
 // import private functions to test
 const logIfDebug = require('./index.js').__get__('logIfDebug');
 const piHoleTest = require('./index.js').__get__('piHoleTest');

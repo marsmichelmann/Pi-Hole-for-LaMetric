@@ -1,6 +1,6 @@
 const config = require(`./config.json`);
 const fetch = require('node-fetch');
-const ora = require('ora');
+const spinner = require('ora')();
 const laMetricAuthKey = `Basic ${Buffer.from(
 	'dev:' + config.LaMetric.AuthKey,
 ).toString('base64')}`;
@@ -20,9 +20,8 @@ const logIfDebug = (msg) => {
 const piHoleTest = () => {
 	logIfDebug('Debug Mode Enabled');
 	console.log(`Starting Pi-Hole for LaMetric ${config.version}...`);
-	let spinner = ora(
-		`Testing Pi-Hole Connection @ ${config.PiHole.IP}...`,
-	).start();
+	spinner.text = `Testing Pi-Hole Connection @ ${config.PiHole.IP}...`;
+	spinner.start();
 	return fetch(
 		`http://${config.PiHole.IP}/admin/api.php?getQueryTypes&auth=${config.PiHole.AuthKey}`,
 	)
@@ -31,7 +30,8 @@ const piHoleTest = () => {
 			spinner.succeed(
 				`Pi-Hole Connection @ ${config.PiHole.IP} Successful!`,
 			);
-			spinner = ora(`Testing Pi-Hole Auth...`).start();
+			spinner.text = 'Testing Pi-Hole Auth...';
+			spinner.start();
 			if (piHoleRes.querytypes != null) {
 				spinner.succeed(`Pi-Hole Auth Valid!`);
 				return Promise.resolve();
@@ -65,9 +65,8 @@ const fetchWithAuth = (url, auth) => {
  * Checks if connection to lametric can be established. In case everything works fine a resolved promise is returned, otherwise a rejected promise.
  */
 const laMetricTest = () => {
-	let spinner = ora(
-		`Testing Connection to LaMetric @ ${config.LaMetric.IP}...`,
-	).start();
+	spinner.text = `Testing Connection to LaMetric @ ${config.LaMetric.IP}...`;
+	spinner.start();
 	return new Promise((resolve, reject) => {
 		fetchWithAuth(
 			`http://${config.LaMetric.IP}:8080/api/v2/device/apps/com.lametric.58091f88c1c019c8266ccb2ea82e311d`,
@@ -146,9 +145,8 @@ const updateLaMetric = () => {
 					piHoleRecentBlockedData,
 				);
 
-				let updateSpinner = ora(
-					`Connecting to LaMetric @ ${config.LaMetric.IP}...`,
-				).start();
+				spinner.text = `Connecting to LaMetric @ ${config.LaMetric.IP}...`;
+				spinner.start();
 				fetchWithAuth(
 					`http://${config.LaMetric.IP}:8080/api/v2/device/apps/com.lametric.58091f88c1c019c8266ccb2ea82e311d`,
 					laMetricAuthKey,
@@ -164,7 +162,7 @@ const updateLaMetric = () => {
 							laMetricAuthKey,
 						).then((laMetricDeviceInfo2) => {
 							if (laMetricDeviceInfo2.name) {
-								updateSpinner.text = `Sending update for "${laMetricDeviceInfo2.name}" @ ${config.LaMetric.IP} to the server...`;
+								spinner.text = `Sending update for "${laMetricDeviceInfo2.name}" @ ${config.LaMetric.IP} to the server...`;
 								fetch(
 									`https://lametric.glitch.me/pihole/${laMetricDeviceInfo2.id}`,
 									{
@@ -172,7 +170,7 @@ const updateLaMetric = () => {
 										body: body,
 									},
 								).then(() => {
-									updateSpinner.succeed(
+									spinner.succeed(
 										`Sent update for "${
 											laMetricDeviceInfo2.name
 										}" @ ${
@@ -188,13 +186,13 @@ const updateLaMetric = () => {
 							} else {
 								let msg =
 									'Lametric data not available Invalid! Make sure the supplied key is correct.';
-								updateSpinner.fail(msg);
+								spinner.fail(msg);
 								return reject(msg);
 							}
 						});
 					})
 					.catch((err) => {
-						updateSpinner.fail(
+						spinner.fail(
 							`Update failed to send for LaMetric @ ${config.LaMetric.IP}. LaMetric does not seem to linked to this IP.`,
 						);
 						return reject(err);
@@ -255,4 +253,5 @@ const mapKeyValuePairToString = (data, index) => {
 
 module.exports = {
 	main,
+	spinner,
 };
