@@ -37,6 +37,7 @@ const mapKeyValuePairToString = require('./index.js').__get__(
 const startUpdateTimer = require('./index.js').__get__('startUpdateTimer');
 const laMetricTest = require('./index.js').__get__('laMetricTest');
 const updateLaMetric = require('./index.js').__get__('updateLaMetric');
+const fetchAndProcess = require('./index.js').__get__('fetchAndProcess');
 const fetchWithAuth = require('./index.js').__get__('fetchWithAuth');
 const { main } = require('./index');
 
@@ -83,6 +84,22 @@ describe('testing pi hole for lametric (with debug mode)', () => {
 
 		// At this point, our 1-second timer should have fired it's callback
 		expect(callbackMock).toBeCalled();
+	});
+
+	it('should fetch url without authorization header and payload', async () => {
+		// init
+		let url = 'www.bla.de';
+		let mockResponse = { 1: '123' };
+		fetchMock.get(url, { status: 200, body: mockResponse });
+		let callbackFunction = jest.fn();
+
+		// run & validation
+		await expect(
+			fetchAndProcess(url, null, null, callbackFunction),
+		).resolves.toBeUndefined();
+		expect(callbackFunction).toBeCalledTimes(1);
+		expect(callbackFunction).toBeCalledWith(mockResponse, null);
+		fetchMock.mockReset();
 	});
 
 	it('should fetch Json Placeholder via fetchWithAuth', async () => {

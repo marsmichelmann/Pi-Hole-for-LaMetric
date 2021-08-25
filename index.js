@@ -14,6 +14,31 @@ const logIfDebug = (msg) => {
 		console.log(msg);
 	}
 };
+
+/**
+ * Fetches the given {@param url} with optional {@param payload}. (optionally with authorization header using the given
+ * {@param auth} value). The received response is processed with the given {@param callbackFunction}.
+ *
+ * @param url the url to call.
+ * @param payload optional payload for the request.
+ * @param auth optional authorization header for the request.
+ * @param callbackFunction the callback function to be called to process the response received for the request.
+
+ * @returns {Promise<*>} of the called fetch.
+ */
+const fetchAndProcess = (url, payload, auth, callbackFunction) => {
+	return fetch(url, {
+		method: payload ? 'POST' : 'GET',
+		headers: auth ? { Authorization: auth } : {},
+	})
+		.then((res) => res.json())
+		.then((res) => callbackFunction(res, payload))
+		.catch((errorMsg) => {
+			spinner.fail(errorMsg);
+			return Promise.reject(errorMsg);
+		});
+};
+
 /**
  * Checks if connection to pi hole can be established. In case everything works fine a resolved promise is returned, otherwise a rejected promise.
  */
