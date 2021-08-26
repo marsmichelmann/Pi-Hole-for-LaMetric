@@ -32,7 +32,9 @@ const fetchAndProcess = (url, payload, auth, callbackFunction) => {
 		body: payload ? payload : null,
 		headers: auth ? { Authorization: auth } : {},
 	})
-		.then((res) => res.json())
+		.then((res) =>
+			url.includes('recentBlocked') ? res.text() : res.json(),
+		)
 		.then((res) => callbackFunction(res))
 		.then(({ msg, res }) => {
 			spinner.succeed(msg);
@@ -174,15 +176,24 @@ const updateLaMetric = () => {
 	return new Promise((resolve, reject) => {
 		// request data from pi hole and combine it
 		const piHoleCalls = [
-			fetch(
+			fetchAndProcess(
 				`http://${config.PiHole.IP}/admin/api.php?summary&auth=${config.PiHole.AuthKey}`,
-			).then((res) => res.json()),
-			fetch(
+				null,
+				null,
+				handlePiholeDataResponse,
+			),
+			fetchAndProcess(
 				`http://${config.PiHole.IP}/admin/api.php?topItems&auth=${config.PiHole.AuthKey}`,
-			).then((res) => res.json()),
-			fetch(
+				null,
+				null,
+				handlePiholeDataResponse,
+			),
+			fetchAndProcess(
 				`http://${config.PiHole.IP}/admin/api.php?recentBlocked&auth=${config.PiHole.AuthKey}`,
-			).then((res) => res.text()),
+				null,
+				null,
+				handlePiholeDataResponse,
+			),
 		];
 		Promise.all(piHoleCalls).then(
 			([
@@ -252,6 +263,17 @@ const updateLaMetric = () => {
 		);
 	});
 };
+
+/**
+ * Handles the given {@param response} from Pihole data request.
+ *
+ * @param response the response to handle.
+ * @returns {Promise<string>} Resolves the promise in case of a valid response. Otherwise an error is thrown.
+ */
+const handlePiholeDataResponse = (response) => {
+	return { msg: '', res: response };
+};
+
 /**
  * Starts interval timer for calling the given callback function based on the config.
  * @param callback the function to call
