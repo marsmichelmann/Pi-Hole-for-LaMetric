@@ -592,25 +592,44 @@ describe('testing pi hole for lametric (with debug mode)', () => {
 				body: piHoleRecentBlockedData.body,
 			})
 			.post(urlLametricUpdate, {
-				throws: new Error('error on sending update to lametric'),
+				throws: 'error on sending update to lametric',
 			});
 
 		// run & validation
 		await expect(updateLaMetric()).rejects.toEqual(
 			'error on sending update to lametric',
 		);
-		// expect(fetchMock).toBeCalledTimes(2);
-		// expect(fetchMock).toBeCalledWith(laMetricDeviceInfo.url, {
-		// 	body: null,
-		// 	headers: { Authorization: 'Basic ZGV2OjQ1Ng==' },
-		// 	method: 'GET',
-		// });
-		// expect(fetchMock).toBeCalledWith(laMetricDeviceInfo2.url, {
-		// 	body: null,
-		// 	headers: { Authorization: 'Basic ZGV2OjQ1Ng==' },
-		// 	method: 'GET',
-		// });
-		// fetchMock.mockReset();
+		expect(fetchMock).toBeCalledTimes(6);
+		expect(fetchMock).toBeCalledWith(laMetricDeviceInfo.url, {
+			body: null,
+			headers: { Authorization: 'Basic ZGV2OjQ1Ng==' },
+			method: 'GET',
+		});
+		expect(fetchMock).toBeCalledWith(laMetricDeviceInfo2.url, {
+			body: null,
+			headers: { Authorization: 'Basic ZGV2OjQ1Ng==' },
+			method: 'GET',
+		});
+		expect(fetchMock).toBeCalledWith(piHoleSummaryData.url, {
+			body: null,
+			headers: {},
+			method: 'GET',
+		});
+		expect(fetchMock).toBeCalledWith(piHoleTopItemsData.url, {
+			body: null,
+			headers: {},
+			method: 'GET',
+		});
+		expect(fetchMock).toBeCalledWith(piHoleRecentBlockedData.url, {
+			body: null,
+			headers: {},
+			method: 'GET',
+		});
+		expect(fetchMock).toBeCalledWith(urlLametricUpdate, {
+			method: 'POST',
+			body: mockPiHoleCombinedData,
+		});
+		fetchMock.mockReset();
 	});
 
 	it('should resolve promise, when sending update to lametric is successful', async () => {
