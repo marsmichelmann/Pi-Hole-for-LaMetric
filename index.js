@@ -37,7 +37,9 @@ const fetchAndProcess = (url, payload, auth, callbackFunction) => {
 		)
 		.then((res) => callbackFunction(res))
 		.then(({ msg, res }) => {
-			spinner.succeed(msg);
+			if (!msg.includes('ignore')) {
+				spinner.succeed(msg);
+			}
 			return Promise.resolve(res);
 		})
 		.catch((errorMsg) => {
@@ -52,8 +54,7 @@ const fetchAndProcess = (url, payload, auth, callbackFunction) => {
 const piHoleTest = () => {
 	logIfDebug('Debug Mode Enabled');
 	console.log(`Starting Pi-Hole for LaMetric ${config.version}...`);
-	spinner.text = `Testing Pi-Hole Connection @ ${config.PiHole.IP}...`;
-	spinner.start();
+	spinner.succeed(`Testing Pi-Hole Connection @ ${config.PiHole.IP}...`);
 
 	return fetchAndProcess(
 		`http://${config.PiHole.IP}/admin/api.php?getQueryTypes&auth=${config.PiHole.AuthKey}`,
@@ -70,8 +71,9 @@ const piHoleTest = () => {
  * @returns {Promise<string>} Resolves the promise in case of a valid response. Otherwise an error is thrown.
  */
 const handlePiholeLoginResponse = (response) => {
-	spinner.succeed(`Pi-Hole Connection @ ${config.PiHole.IP} Successful!`);
-	spinner.text = 'Testing Pi-Hole Auth...';
+	spinner.succeed(
+		`Pi-Hole Connection @ ${config.PiHole.IP} Successful! Testing Pi-Hole Auth...`,
+	);
 	spinner.start();
 	if (response.querytypes == null) {
 		throw new Error(
@@ -79,14 +81,16 @@ const handlePiholeLoginResponse = (response) => {
 		);
 	}
 
-	return Promise.resolve('Pi-Hole Auth Valid!');
+	return Promise.resolve({ msg: 'Pi-Hole Auth Valid!', res: response });
 };
 
 /**
  * Checks if connection to lametric can be established. In case everything works fine a resolved promise is returned, otherwise a rejected promise.
  */
 const laMetricTest = () => {
-	spinner.text = `Testing Connection to LaMetric @ ${config.LaMetric.IP}...`;
+	spinner.succeed(
+		`Testing Connection to LaMetric @ ${config.LaMetric.IP}...`,
+	);
 	spinner.start();
 
 	const lametricCalls = [
@@ -105,10 +109,10 @@ const laMetricTest = () => {
 	];
 
 	return Promise.all(lametricCalls).then(([lametricLogin, lametricData]) => {
-		return Promise.resolve({
-			msg: `Connected to "${lametricLogin.name}" @ ${config.LaMetric.IP} running OS v${lametricLogin.os_version} & Pi-Hole Status v${lametricLogin.version}! (${lametricData.serial_number})`,
-			res: {},
-		});
+		spinner.succeed(
+			`Connected to "${lametricLogin.name}" @ ${config.LaMetric.IP} running OS v${lametricLogin.os_version} & Pi-Hole Status v${lametricLogin.version}! (${lametricData.serial_number})`,
+		);
+		return Promise.resolve();
 	});
 };
 
@@ -123,7 +127,7 @@ const handleLametricLoginResponse = (response) => {
 		throw new Error('Connection to Lametric is unauthorized');
 	}
 	return Promise.resolve({
-		msg: 'Connection to Lametric established',
+		msg: 'ignore',
 		res: response,
 	});
 };
@@ -136,7 +140,7 @@ const handleLametricLoginResponse = (response) => {
  */
 const handleLametricDataResponse = (response) => {
 	if (response.name) {
-		return Promise.resolve({ msg: '', res: response });
+		return Promise.resolve({ msg: 'ignore', res: response });
 	}
 
 	throw new Error('Lametric data is corrupt!');
@@ -162,8 +166,9 @@ const mapToBody = (
  * Collects data from pi hole, combines it and sends the result to lametric instance.  In case everything works fine a resolved promise is returned, otherwise a rejected promise.
  */
 const updateLaMetric = () => {
-	spinner.text = `Connecting to LaMetric @ ${config.LaMetric.IP}...`;
-	spinner.start();
+	spinner.succeed(
+		`Connecting to LaMetric @ ${config.LaMetric.IP}... for sending update`,
+	);
 
 	const lametricCalls = [
 		fetchAndProcess(
@@ -182,9 +187,15 @@ const updateLaMetric = () => {
 
 	return Promise.all(lametricCalls).then(([lametricLogin, lametricData]) => {
 		return new Promise(async (resolve, reject) => {
+			spinner.succeed(
+				`Connected to LaMetric @ ${config.LaMetric.IP} for sending update`,
+			);
+
 			let body = await getPiholeData();
 
-			spinner.text = `Sending update for "${lametricData.name}" @ ${config.LaMetric.IP} to the server...`;
+			spinner.start(
+				`Sending update for "${lametricData.name}" @ ${config.LaMetric.IP} to the server...`,
+			);
 			fetch(`https://lametric.glitch.me/pihole/${lametricData.id}`, {
 				method: 'POST',
 				body: body,
@@ -254,7 +265,7 @@ const getPiholeData = async () => {
  * @returns {{msg: string, res}} Resolves the promise in case of a valid response. Otherwise an error is thrown.
  */
 const handlePiholeDataResponse = (response) => {
-	return { msg: '', res: response };
+	return { msg: 'ignore', res: response };
 };
 
 /**
@@ -268,7 +279,6 @@ const startUpdateTimer = (callback) => {
 };
 /**
  * Main program.
- *
  */
 const main = () => {
 	piHoleTest()
