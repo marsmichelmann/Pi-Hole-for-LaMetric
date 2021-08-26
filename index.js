@@ -66,9 +66,8 @@ const piHoleTest = () => {
 
 /**
  * Handles the given {@param response} from Pihole login.
- *
  * @param response the response to handle.
- * @returns {Promise<string>} Resolves the promise in case of a valid response. Otherwise an error is thrown.
+ * @returns {Promise<{msg: string, res: ({querytypes}|*)}>} Resolves the promise in case of a valid response. Otherwise an error is thrown.
  */
 const handlePiholeLoginResponse = (response) => {
 	spinner.succeed(
@@ -192,10 +191,10 @@ const updateLaMetric = () => {
 			);
 
 			let body = await getPiholeData();
-
 			spinner.start(
 				`Sending update for "${lametricData.name}" @ ${config.LaMetric.IP} to the server...`,
 			);
+
 			fetch(`https://lametric.glitch.me/pihole/${lametricData.id}`, {
 				method: 'POST',
 				body: body,
@@ -226,7 +225,7 @@ const updateLaMetric = () => {
  * Collects and combines relevant data from pihole.
  * @returns {Promise<{adsBlockedToday: *, totalClientsSeen: *, totalDNSQueries: *, topQuery: string, topBlockedQuery: string, dnsQueriesToday: *, lastBlockedQuery: *, blockListSize: *}>}
  */
-const getPiholeData = async () => {
+const getPiholeData = () => {
 	const piHoleCalls = [
 		fetchAndProcess(
 			`http://${config.PiHole.IP}/admin/api.php?summary&auth=${config.PiHole.AuthKey}`,
@@ -248,7 +247,7 @@ const getPiholeData = async () => {
 		),
 	];
 
-	return await Promise.all(piHoleCalls).then(
+	return Promise.all(piHoleCalls).then(
 		([piHoleSummaryData, piHoleTopItemsData, piHoleRecentBlockedData]) =>
 			mapToBody(
 				piHoleSummaryData,
