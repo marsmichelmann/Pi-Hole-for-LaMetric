@@ -86,7 +86,7 @@ describe('testing pi hole for lametric (with debug mode)', () => {
 		expect(callbackMock).toBeCalled();
 	});
 
-	it('should fetch url without authorization header and payload', async () => {
+	it('should fetch url without authorization header and without payload', async () => {
 		// init
 		let url = 'www.bla.de';
 		let mockResponse = { 1: '123' };
@@ -98,7 +98,116 @@ describe('testing pi hole for lametric (with debug mode)', () => {
 			fetchAndProcess(url, null, null, callbackFunction),
 		).resolves.toBeUndefined();
 		expect(callbackFunction).toBeCalledTimes(1);
-		expect(callbackFunction).toBeCalledWith(mockResponse, null);
+		expect(callbackFunction).toBeCalledWith(mockResponse);
+		fetchMock.mockReset();
+	});
+
+	it('should fetch url with authorization header and without payload', async () => {
+		// init
+		let url = 'www.bla.de';
+		let mockResponse = { 1: '123' };
+		let mockAuth = 'secureTest';
+		fetchMock.get(
+			url,
+			{ status: 200, body: mockResponse },
+			{
+				headers: { Authorization: mockAuth },
+			},
+		);
+		let callbackFunction = jest.fn();
+
+		// run & validation
+		await expect(
+			fetchAndProcess(url, null, mockAuth, callbackFunction),
+		).resolves.toBeUndefined();
+		expect(callbackFunction).toBeCalledTimes(1);
+		expect(callbackFunction).toBeCalledWith(mockResponse);
+		fetchMock.mockReset();
+	});
+
+	it('should fetch url without authorization header and with payload', async () => {
+		// init
+		let url = 'www.bla.de';
+		let mockPayload = { bla: 'abc' };
+		let mockResponse = { 1: '123' };
+		fetchMock.post(
+			{
+				url,
+				body: mockPayload,
+			},
+			{
+				status: 200,
+				body: mockResponse,
+			},
+		);
+		let callbackFunction = jest.fn();
+
+		// run & validation
+		await expect(
+			fetchAndProcess(
+				url,
+				JSON.stringify(mockPayload),
+				null,
+				callbackFunction,
+			),
+		).resolves.toBeUndefined();
+		expect(callbackFunction).toBeCalledTimes(1);
+		expect(callbackFunction).toBeCalledWith(mockResponse);
+		fetchMock.mockReset();
+	});
+
+	it('should fetch url with authorization header and with payload', async () => {
+		// init
+		let url = 'www.bla.de';
+		let mockPayload = { bla: 'abc' };
+		let mockResponse = { 1: '123' };
+		let mockAuth = 'secureTest';
+		fetchMock.post(
+			{
+				url,
+				body: mockPayload,
+			},
+			{
+				status: 200,
+				body: mockResponse,
+			},
+			{
+				headers: { Authorization: mockAuth },
+			},
+		);
+		let callbackFunction = jest.fn();
+
+		// run & validation
+		await expect(
+			fetchAndProcess(
+				url,
+				JSON.stringify(mockPayload),
+				mockAuth,
+				callbackFunction,
+			),
+		).resolves.toBeUndefined();
+		expect(callbackFunction).toBeCalledTimes(1);
+		expect(callbackFunction).toBeCalledWith(mockResponse);
+		fetchMock.mockReset();
+	});
+
+	it('should catch error on fetch of url', async () => {
+		// init
+		let url = 'www.bla.de';
+		let error = new Error('test');
+		fetchMock.get(url, {
+			status: 500,
+			throws: error,
+		});
+		let callbackFunction = jest.fn();
+
+		// run & validation
+		await expect(
+			fetchAndProcess(url, null, null, callbackFunction),
+		).rejects.toEqual(error.message);
+		expect(spinner.fail).toBeCalledTimes(1);
+		expect(spinner.fail).toBeCalledWith(error.message);
+		expect(callbackFunction).toBeCalledTimes(0);
 		fetchMock.mockReset();
 	});
 

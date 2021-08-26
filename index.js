@@ -29,13 +29,14 @@ const logIfDebug = (msg) => {
 const fetchAndProcess = (url, payload, auth, callbackFunction) => {
 	return fetch(url, {
 		method: payload ? 'POST' : 'GET',
+		body: payload ? payload : {},
 		headers: auth ? { Authorization: auth } : {},
 	})
 		.then((res) => res.json())
-		.then((res) => callbackFunction(res, payload))
+		.then((res) => callbackFunction(res))
 		.catch((errorMsg) => {
-			spinner.fail(errorMsg);
-			return Promise.reject(errorMsg);
+			spinner.fail(errorMsg.message);
+			return Promise.reject(errorMsg.message);
 		});
 };
 
@@ -279,4 +280,5 @@ const mapKeyValuePairToString = (data, index) => {
 module.exports = {
 	main,
 	spinner,
+	fetchAndProcess,
 };
