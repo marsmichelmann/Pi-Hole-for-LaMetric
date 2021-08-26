@@ -81,18 +81,7 @@ const handlePiholeLoginResponse = (response) => {
 
 	return Promise.resolve('Pi-Hole Auth Valid!');
 };
-/**
- * Triggers fetch get request for the given url with the given authorization header.
- * @param url the url to call.
- * @param auth the authorization header.
- * @returns {Promise<*>} of the called fetch.
- */
-const fetchWithAuth = (url, auth) => {
-	return fetch(url, {
-		method: 'GET',
-		headers: { Authorization: auth },
-	}).then((res) => res.json());
-};
+
 /**
  * Checks if connection to lametric can be established. In case everything works fine a resolved promise is returned, otherwise a rejected promise.
  */
@@ -196,13 +185,10 @@ const updateLaMetric = () => {
 			let body = await getPiholeData();
 
 			spinner.text = `Sending update for "${lametricData.name}" @ ${config.LaMetric.IP} to the server...`;
-			fetch(
-				`https://lametric.glitch.me/pihole/${lametricData.id}`,
-				{
-					method: 'POST',
-					body: body,
-				},
-			)
+			fetch(`https://lametric.glitch.me/pihole/${lametricData.id}`, {
+				method: 'POST',
+				body: body,
+			})
 				.then(() => {
 					spinner.succeed(
 						`Sent update for "${lametricData.name}" @ ${
