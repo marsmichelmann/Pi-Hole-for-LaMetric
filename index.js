@@ -29,7 +29,7 @@ const logIfDebug = (msg) => {
 const fetchAndProcess = (url, payload, auth, callbackFunction) => {
 	return fetch(url, {
 		method: payload ? 'POST' : 'GET',
-		body: payload ? payload : {},
+		body: payload ? payload : null,
 		headers: auth ? { Authorization: auth } : {},
 	})
 		.then((res) => res.json())

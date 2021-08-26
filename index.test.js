@@ -211,14 +211,18 @@ describe('testing pi hole for lametric (with debug mode)', () => {
 		fetchMock.mockReset();
 	});
 
-	it('should fetch Json Placeholder via fetchWithAuth', async () => {
+	it('should fetch Json Placeholder', async () => {
 		// init
 		console.warn = jest.fn();
+		let url = 'https://jsonplaceholder.typicode.com/todos/1';
+		let callbackFunction = jest.fn();
 
 		// run & validation
 		await expect(
-			fetchWithAuth('https://jsonplaceholder.typicode.com/todos/1'),
-		).resolves.toEqual({
+			fetchAndProcess(url, null, null, callbackFunction),
+		).resolves.toBeUndefined();
+		expect(callbackFunction).toBeCalledTimes(1);
+		expect(callbackFunction).toBeCalledWith({
 			completed: false,
 			id: 1,
 			title: 'delectus aut autem',
