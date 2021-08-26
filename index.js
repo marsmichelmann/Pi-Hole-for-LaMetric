@@ -34,6 +34,10 @@ const fetchAndProcess = (url, payload, auth, callbackFunction) => {
 	})
 		.then((res) => res.json())
 		.then((res) => callbackFunction(res))
+		.then((msg) => {
+			spinner.succeed(msg);
+			return Promise.resolve();
+		})
 		.catch((errorMsg) => {
 			spinner.fail(errorMsg.message);
 			return Promise.reject(errorMsg.message);
@@ -48,32 +52,32 @@ const piHoleTest = () => {
 	console.log(`Starting Pi-Hole for LaMetric ${config.version}...`);
 	spinner.text = `Testing Pi-Hole Connection @ ${config.PiHole.IP}...`;
 	spinner.start();
-	return fetch(
+
+	return fetchAndProcess(
 		`http://${config.PiHole.IP}/admin/api.php?getQueryTypes&auth=${config.PiHole.AuthKey}`,
-	)
-		.then((res) => res.json())
-		.then((piHoleRes) => {
-			spinner.succeed(
-				`Pi-Hole Connection @ ${config.PiHole.IP} Successful!`,
-			);
-			spinner.text = 'Testing Pi-Hole Auth...';
-			spinner.start();
-			if (piHoleRes.querytypes != null) {
-				spinner.succeed(`Pi-Hole Auth Valid!`);
-				return Promise.resolve();
-			} else {
-				spinner.fail(
-					'Pi-Hole Auth Invalid! Make sure the supplied key is correct.',
-				);
-				return Promise.reject();
-			}
-		})
-		.catch(() => {
-			let msg =
-				'Unable to connect to Pi-Hole via the supplied IP. Make sure that the IP is correct.';
-			spinner.fail(msg);
-			return Promise.reject(msg);
-		});
+		null,
+		null,
+		handlePiholeLoginResponse,
+	);
+};
+
+/**
+ * Handles the given {@param response} from Pihole login.
+ *
+ * @param response the response to handle.
+ * @returns {Promise<string>} Resolves the promise in case of a valid response. Otherwise an error is thrown.
+ */
+const handlePiholeLoginResponse = (response) => {
+	spinner.succeed(`Pi-Hole Connection @ ${config.PiHole.IP} Successful!`);
+	spinner.text = 'Testing Pi-Hole Auth...';
+	spinner.start();
+	if (response.querytypes == null) {
+		throw new Error(
+			'Pi-Hole Auth Invalid! Make sure the supplied key is correct.',
+		);
+	} else {
+		return Promise.resolve('Pi-Hole Auth Valid!');
+	}
 };
 /**
  * Triggers fetch get request for the given url with the given authorization header.

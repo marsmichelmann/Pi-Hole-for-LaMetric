@@ -238,10 +238,14 @@ describe('testing pi hole for lametric (with debug mode)', () => {
 
 		// run & validation
 		await expect(piHoleTest()).rejects.toEqual(
-			'Unable to connect to Pi-Hole via the supplied IP. Make sure that the IP is correct.',
+			'Pi-Hole Auth Invalid! Make sure the supplied key is correct.',
 		);
 		expect(fetchMock).toBeCalledTimes(1);
-		expect(fetchMock).toBeCalledWith(piHoleError.url, undefined);
+		expect(fetchMock).toBeCalledWith(piHoleError.url, {
+			body: null,
+			headers: {},
+			method: 'GET',
+		});
 		fetchMock.mockReset();
 	});
 
@@ -255,10 +259,14 @@ describe('testing pi hole for lametric (with debug mode)', () => {
 
 		// run & validation
 		await expect(piHoleTest()).rejects.toEqual(
-			'Unable to connect to Pi-Hole via the supplied IP. Make sure that the IP is correct.',
+			'Pi-Hole Auth Invalid! Make sure the supplied key is correct.',
 		);
 		expect(fetchMock).toBeCalledTimes(1);
-		expect(fetchMock).toBeCalledWith(piHoleInvalidData.url, undefined);
+		expect(fetchMock).toBeCalledWith(piHoleInvalidData.url, {
+			body: null,
+			headers: {},
+			method: 'GET',
+		});
 		fetchMock.mockReset();
 	});
 
@@ -273,7 +281,11 @@ describe('testing pi hole for lametric (with debug mode)', () => {
 		// run & validation
 		await expect(piHoleTest()).resolves.toBeUndefined();
 		expect(fetchMock).toBeCalledTimes(1);
-		expect(fetchMock).toBeCalledWith(piHoleLogin.url, undefined);
+		expect(fetchMock).toBeCalledWith(piHoleLogin.url, {
+			body: null,
+			headers: {},
+			method: 'GET',
+		});
 		fetchMock.mockReset();
 	});
 
@@ -615,7 +627,7 @@ describe('testing pi hole for lametric (with debug mode)', () => {
 
 		// validation
 		expect(spyConsole).toBeCalledWith(
-			'Unable to connect to Pi-Hole via the supplied IP. Make sure that the IP is correct.',
+			'Pi-Hole Auth Invalid! Make sure the supplied key is correct.',
 		);
 		fetchMock.mockReset();
 	});
