@@ -38,7 +38,6 @@ const startUpdateTimer = require('./index.js').__get__('startUpdateTimer');
 const laMetricTest = require('./index.js').__get__('laMetricTest');
 const updateLaMetric = require('./index.js').__get__('updateLaMetric');
 const fetchAndProcess = require('./index.js').__get__('fetchAndProcess');
-const fetchWithAuth = require('./index.js').__get__('fetchWithAuth');
 const { main } = require('./index');
 
 describe('testing pi hole for lametric (with debug mode)', () => {
