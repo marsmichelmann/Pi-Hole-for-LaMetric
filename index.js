@@ -173,95 +173,145 @@ const mapToBody = (
  * Collects data from pi hole, combines it and sends the result to lametric instance.  In case everything works fine a resolved promise is returned, otherwise a rejected promise.
  */
 const updateLaMetric = () => {
-	return new Promise((resolve, reject) => {
-		// request data from pi hole and combine it
-		const piHoleCalls = [
-			fetchAndProcess(
-				`http://${config.PiHole.IP}/admin/api.php?summary&auth=${config.PiHole.AuthKey}`,
-				null,
-				null,
-				handlePiholeDataResponse,
-			),
-			fetchAndProcess(
-				`http://${config.PiHole.IP}/admin/api.php?topItems&auth=${config.PiHole.AuthKey}`,
-				null,
-				null,
-				handlePiholeDataResponse,
-			),
-			fetchAndProcess(
-				`http://${config.PiHole.IP}/admin/api.php?recentBlocked&auth=${config.PiHole.AuthKey}`,
-				null,
-				null,
-				handlePiholeDataResponse,
-			),
-		];
-		Promise.all(piHoleCalls).then(
-			([
+	spinner.text = `Connecting to LaMetric @ ${config.LaMetric.IP}...`;
+	spinner.start();
+
+	const lametricCalls = [
+		fetchAndProcess(
+			`http://${config.LaMetric.IP}:8080/api/v2/device/apps/com.lametric.58091f88c1c019c8266ccb2ea82e311d`,
+			null,
+			laMetricAuthKey,
+			handleLametricLoginResponse,
+		),
+		fetchAndProcess(
+			`http://${config.LaMetric.IP}:8080/api/v2/device`,
+			null,
+			laMetricAuthKey,
+			handleLametricDataResponse,
+		),
+	];
+
+	return Promise.all(lametricCalls).then(([lametricLogin, lametricData]) => {
+		return new Promise(async (resolve, reject) => {
+			let body = await getPiholeData();
+
+			return reject('error on sending update to lametric', {});
+			// spinner.text = `Sending update for "${laMetricDeviceInfo2.name}" @ ${config.LaMetric.IP} to the server...`;
+			// fetch(
+			// 	`https://lametric.glitch.me/pihole/${laMetricDeviceInfo2.id}`,
+			// 	{
+			// 		method: 'POST',
+			// 		body: body,
+			// 	},
+			// )
+			// 	.then(() => {
+			// 		spinner.succeed(
+			// 			`Sent update for "${laMetricDeviceInfo2.name}" @ ${
+			// 				config.LaMetric.IP
+			// 			} to the server (sent data: "${JSON.stringify(
+			// 				body,
+			// 				null,
+			// 				2,
+			// 			)}")!`,
+			// 		);
+			// 		return resolve();
+			// 	})
+			// 	.catch((err) => {
+			// 		spinner.fail(
+			// 			`Update failed to send for LaMetric @ ${config.LaMetric.IP}. LaMetric does not seem to linked to this IP.`,
+			// 		);
+			// 		return reject(err);
+			// 	});
+
+			// spinner.text = `Connecting to LaMetric @ ${config.LaMetric.IP}...`;
+			// spinner.start();
+			// fetchWithAuth(
+			// 	`http://${config.LaMetric.IP}:8080/api/v2/device/apps/com.lametric.58091f88c1c019c8266ccb2ea82e311d`,
+			// 	laMetricAuthKey,
+			// )
+			// 	.then((laMetricDeviceInfo) => {
+			// 		if (isUnauthorized(laMetricDeviceInfo)) {
+			// 			return reject('Connection to Lametric is unauthorized');
+			// 		}
+			// 		fetchWithAuth(
+			// 			`http://${config.LaMetric.IP}:8080/api/v2/device`,
+			// 			laMetricAuthKey,
+			// 		).then((laMetricDeviceInfo2) => {
+			// 			if (laMetricDeviceInfo2.name) {
+			// 				spinner.text = `Sending update for "${laMetricDeviceInfo2.name}" @ ${config.LaMetric.IP} to the server...`;
+			// 				fetch(
+			// 					`https://lametric.glitch.me/pihole/${laMetricDeviceInfo2.id}`,
+			// 					{
+			// 						method: 'POST',
+			// 						body: body,
+			// 					},
+			// 				).then(() => {
+			// 					spinner.succeed(
+			// 						`Sent update for "${
+			// 							laMetricDeviceInfo2.name
+			// 						}" @ ${
+			// 							config.LaMetric.IP
+			// 						} to the server (sent data: "${JSON.stringify(
+			// 							body,
+			// 							null,
+			// 							2,
+			// 						)}")!`,
+			// 					);
+			// 					return resolve();
+			// 				});
+			// } else {
+			// 	let msg =
+			// 		'Lametric data not available Invalid! Make sure the supplied key is correct.';
+			// 	spinner.fail(msg);
+			// 	return reject(msg);
+			// }
+		});
+	});
+	// TODO?
+	// 			.catch((err) => {
+	// 				spinner.fail(
+	// 					`Update failed to send for LaMetric @ ${config.LaMetric.IP}. LaMetric does not seem to linked to this IP.`,
+	// 				);
+	// 				return reject(err);
+	// 			});
+	// 	});
+	// });
+};
+
+/**
+ * Collects and combines relevant data from pihole.
+ * @returns {Promise<{adsBlockedToday: *, totalClientsSeen: *, totalDNSQueries: *, topQuery: string, topBlockedQuery: string, dnsQueriesToday: *, lastBlockedQuery: *, blockListSize: *}>}
+ */
+const getPiholeData = async () => {
+	const piHoleCalls = [
+		fetchAndProcess(
+			`http://${config.PiHole.IP}/admin/api.php?summary&auth=${config.PiHole.AuthKey}`,
+			null,
+			null,
+			handlePiholeDataResponse,
+		),
+		fetchAndProcess(
+			`http://${config.PiHole.IP}/admin/api.php?topItems&auth=${config.PiHole.AuthKey}`,
+			null,
+			null,
+			handlePiholeDataResponse,
+		),
+		fetchAndProcess(
+			`http://${config.PiHole.IP}/admin/api.php?recentBlocked&auth=${config.PiHole.AuthKey}`,
+			null,
+			null,
+			handlePiholeDataResponse,
+		),
+	];
+
+	return await Promise.all(piHoleCalls).then(
+		([piHoleSummaryData, piHoleTopItemsData, piHoleRecentBlockedData]) =>
+			mapToBody(
 				piHoleSummaryData,
 				piHoleTopItemsData,
 				piHoleRecentBlockedData,
-			]) => {
-				let body = mapToBody(
-					piHoleSummaryData,
-					piHoleTopItemsData,
-					piHoleRecentBlockedData,
-				);
-
-				spinner.text = `Connecting to LaMetric @ ${config.LaMetric.IP}...`;
-				spinner.start();
-				fetchWithAuth(
-					`http://${config.LaMetric.IP}:8080/api/v2/device/apps/com.lametric.58091f88c1c019c8266ccb2ea82e311d`,
-					laMetricAuthKey,
-				)
-					.then((laMetricDeviceInfo) => {
-						if (isUnauthorized(laMetricDeviceInfo)) {
-							return reject(
-								'Connection to Lametric is unauthorized',
-							);
-						}
-						fetchWithAuth(
-							`http://${config.LaMetric.IP}:8080/api/v2/device`,
-							laMetricAuthKey,
-						).then((laMetricDeviceInfo2) => {
-							if (laMetricDeviceInfo2.name) {
-								spinner.text = `Sending update for "${laMetricDeviceInfo2.name}" @ ${config.LaMetric.IP} to the server...`;
-								fetch(
-									`https://lametric.glitch.me/pihole/${laMetricDeviceInfo2.id}`,
-									{
-										method: 'POST',
-										body: body,
-									},
-								).then(() => {
-									spinner.succeed(
-										`Sent update for "${
-											laMetricDeviceInfo2.name
-										}" @ ${
-											config.LaMetric.IP
-										} to the server (sent data: "${JSON.stringify(
-											body,
-											null,
-											2,
-										)}")!`,
-									);
-									return resolve();
-								});
-							} else {
-								let msg =
-									'Lametric data not available Invalid! Make sure the supplied key is correct.';
-								spinner.fail(msg);
-								return reject(msg);
-							}
-						});
-					})
-					.catch((err) => {
-						spinner.fail(
-							`Update failed to send for LaMetric @ ${config.LaMetric.IP}. LaMetric does not seem to linked to this IP.`,
-						);
-						return reject(err);
-					});
-			},
-		);
-	});
+			),
+	);
 };
 
 /**
@@ -328,4 +378,5 @@ module.exports = {
 	main,
 	spinner,
 	fetchAndProcess,
+	getPiholeData,
 };

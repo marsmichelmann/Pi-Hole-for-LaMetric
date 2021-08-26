@@ -246,6 +246,17 @@ const urlLametricUpdate = 'https://lametric.glitch.me/pihole/13233';
 
 const mockEmptyResponse = { msg: 'ok', res: {} };
 
+const mockPiHoleCombinedData = {
+	adsBlockedToday: '7,558',
+	blockListSize: '1,399,949',
+	dnsQueriesToday: '47,730',
+	lastBlockedQuery: 'analytics.ff.avast.com',
+	topBlockedQuery: 'web.vortex.data.microsoft.com (928 Queries)',
+	topQuery: 'data.iot.us-east-1.amazonaws.com (3741 Queries)',
+	totalClientsSeen: '32',
+	totalDNSQueries: '47,730',
+};
+
 module.exports = {
 	mockConfig,
 	piHoleSummaryData,
@@ -261,4 +272,5 @@ module.exports = {
 	laMetricDeviceInfoCorrupt,
 	urlLametricUpdate,
 	mockEmptyResponse,
+	mockPiHoleCombinedData
 };
