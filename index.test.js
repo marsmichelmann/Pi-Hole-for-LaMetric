@@ -91,7 +91,7 @@ describe('testing pi hole for lametric (with debug mode)', () => {
 		let url = 'www.bla.de';
 		let mockResponse = { 1: '123' };
 		fetchMock.get(url, { status: 200, body: mockResponse });
-		let callbackFunction = jest.fn();
+		let callbackFunction = jest.fn().mockImplementation(() => 'ok');
 
 		// run & validation
 		await expect(
@@ -99,6 +99,9 @@ describe('testing pi hole for lametric (with debug mode)', () => {
 		).resolves.toBeUndefined();
 		expect(callbackFunction).toBeCalledTimes(1);
 		expect(callbackFunction).toBeCalledWith(mockResponse);
+		expect(spinner.succeed).toBeCalledTimes(1);
+		expect(spinner.succeed).toBeCalledWith('ok');
+		jest.resetAllMocks();
 		fetchMock.mockReset();
 	});
 
@@ -114,7 +117,7 @@ describe('testing pi hole for lametric (with debug mode)', () => {
 				headers: { Authorization: mockAuth },
 			},
 		);
-		let callbackFunction = jest.fn();
+		let callbackFunction = jest.fn().mockImplementation(() => 'ok');
 
 		// run & validation
 		await expect(
@@ -122,6 +125,9 @@ describe('testing pi hole for lametric (with debug mode)', () => {
 		).resolves.toBeUndefined();
 		expect(callbackFunction).toBeCalledTimes(1);
 		expect(callbackFunction).toBeCalledWith(mockResponse);
+		expect(spinner.succeed).toBeCalledTimes(1);
+		expect(spinner.succeed).toBeCalledWith('ok');
+		jest.resetAllMocks();
 		fetchMock.mockReset();
 	});
 
@@ -140,7 +146,7 @@ describe('testing pi hole for lametric (with debug mode)', () => {
 				body: mockResponse,
 			},
 		);
-		let callbackFunction = jest.fn();
+		let callbackFunction = jest.fn().mockImplementation(() => 'ok');
 
 		// run & validation
 		await expect(
@@ -153,6 +159,9 @@ describe('testing pi hole for lametric (with debug mode)', () => {
 		).resolves.toBeUndefined();
 		expect(callbackFunction).toBeCalledTimes(1);
 		expect(callbackFunction).toBeCalledWith(mockResponse);
+		expect(spinner.succeed).toBeCalledTimes(1);
+		expect(spinner.succeed).toBeCalledWith('ok');
+		jest.resetAllMocks();
 		fetchMock.mockReset();
 	});
 
@@ -175,7 +184,7 @@ describe('testing pi hole for lametric (with debug mode)', () => {
 				headers: { Authorization: mockAuth },
 			},
 		);
-		let callbackFunction = jest.fn();
+		let callbackFunction = jest.fn().mockImplementation(() => 'ok');
 
 		// run & validation
 		await expect(
@@ -188,6 +197,9 @@ describe('testing pi hole for lametric (with debug mode)', () => {
 		).resolves.toBeUndefined();
 		expect(callbackFunction).toBeCalledTimes(1);
 		expect(callbackFunction).toBeCalledWith(mockResponse);
+		expect(spinner.succeed).toBeCalledTimes(1);
+		expect(spinner.succeed).toBeCalledWith('ok');
+		jest.resetAllMocks();
 		fetchMock.mockReset();
 	});
 
@@ -208,6 +220,7 @@ describe('testing pi hole for lametric (with debug mode)', () => {
 		expect(spinner.fail).toBeCalledTimes(1);
 		expect(spinner.fail).toBeCalledWith(error.message);
 		expect(callbackFunction).toBeCalledTimes(0);
+		expect(spinner.succeed).toBeCalledTimes(0);
 		fetchMock.mockReset();
 	});
 
