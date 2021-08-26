@@ -184,41 +184,52 @@ const updateLaMetric = () => {
 		),
 	];
 
-	return Promise.all(lametricCalls).then(([lametricLogin, lametricData]) => {
-		return new Promise(async (resolve, reject) => {
+	return Promise.all(lametricCalls).then(
+		async ([lametricLogin, lametricData]) => {
 			spinner.succeed(
 				`Connected to LaMetric @ ${config.LaMetric.IP} for sending update`,
 			);
 
 			let body = await getPiholeData();
 			spinner.start(
-				`Sending update for "${lametricData.name}" @ ${config.LaMetric.IP} to the server...`,
+				`Sending update for "${lametricData.name}" @ ${config.LaMetric.IP} to the server`,
 			);
+
+			// fetchAndProcess(
+			// 	`https://lametric.glitch.me/pihole/${lametricData.id}`,
+			// 	body,
+			// 	null,
+			// 	() => {},
+			// );
 
 			fetch(`https://lametric.glitch.me/pihole/${lametricData.id}`, {
 				method: 'POST',
 				body: body,
 			})
-				.then(() => {
-					spinner.succeed(
-						`Sent update for "${lametricData.name}" @ ${
-							config.LaMetric.IP
-						} to the server (sent data: "${JSON.stringify(
-							body,
-							null,
-							2,
-						)}")!`,
-					);
-					return resolve();
-				})
+				.then((res) => handleLametricUpdateResponse(res, body))
 				.catch((err) => {
 					spinner.fail(
 						`Update failed to send for LaMetric @ ${config.LaMetric.IP}. LaMetric does not seem to linked to this IP.`,
 					);
-					return reject(err);
+					return Promise.reject(err);
 				});
-		});
-	});
+		},
+	);
+};
+
+/**
+ * Handles the given {@param response} from Lametric update request.
+ *
+ * @param response the response to handle.
+ * @param payload the sent payload.
+ * @returns {Promise<void>} Resolves the promise in case of a valid response. Otherwise an error is thrown.
+ */
+const handleLametricUpdateResponse = (response, payload) => {
+	console.log('received response: ' + response);
+	spinner.succeed(
+		`Sent data (${JSON.stringify(payload, null, 2)}) to lametric server`,
+	);
+	return Promise.resolve();
 };
 
 /**
