@@ -244,6 +244,8 @@ const laMetricDeviceInfoCorrupt = {
 
 const urlLametricUpdate = 'https://lametric.glitch.me/pihole/13233';
 
+const mockEmptyResponse = { msg: 'ok', res: {} };
+
 module.exports = {
 	mockConfig,
 	piHoleSummaryData,
@@ -258,4 +260,5 @@ module.exports = {
 	lametricUnauthorized,
 	laMetricDeviceInfoCorrupt,
 	urlLametricUpdate,
+	mockEmptyResponse,
 };

@@ -34,9 +34,9 @@ const fetchAndProcess = (url, payload, auth, callbackFunction) => {
 	})
 		.then((res) => res.json())
 		.then((res) => callbackFunction(res))
-		.then((msg) => {
+		.then(({ msg, res }) => {
 			spinner.succeed(msg);
-			return Promise.resolve();
+			return Promise.resolve(res);
 		})
 		.catch((errorMsg) => {
 			spinner.fail(errorMsg.message);
@@ -75,9 +75,9 @@ const handlePiholeLoginResponse = (response) => {
 		throw new Error(
 			'Pi-Hole Auth Invalid! Make sure the supplied key is correct.',
 		);
-	} else {
-		return Promise.resolve('Pi-Hole Auth Valid!');
 	}
+
+	return Promise.resolve('Pi-Hole Auth Valid!');
 };
 /**
  * Triggers fetch get request for the given url with the given authorization header.
@@ -97,39 +97,60 @@ const fetchWithAuth = (url, auth) => {
 const laMetricTest = () => {
 	spinner.text = `Testing Connection to LaMetric @ ${config.LaMetric.IP}...`;
 	spinner.start();
-	return new Promise((resolve, reject) => {
-		fetchWithAuth(
+
+	const lametricCalls = [
+		fetchAndProcess(
 			`http://${config.LaMetric.IP}:8080/api/v2/device/apps/com.lametric.58091f88c1c019c8266ccb2ea82e311d`,
+			null,
 			laMetricAuthKey,
-		)
-			.then((laMetricDeviceInfo) => {
-				if (isUnauthorized(laMetricDeviceInfo)) {
-					return reject('Connection to Lametric is unauthorized');
-				}
-				fetchWithAuth(
-					`http://${config.LaMetric.IP}:8080/api/v2/device`,
-					laMetricAuthKey,
-				).then((laMetricDeviceInfo2) => {
-					if (laMetricDeviceInfo2.name) {
-						spinner.succeed(
-							`Connected to "${laMetricDeviceInfo2.name}" @ ${config.LaMetric.IP} running OS v${laMetricDeviceInfo2.os_version} & Pi-Hole Status v${laMetricDeviceInfo.version}! (${laMetricDeviceInfo2.serial_number})`,
-						);
-						return resolve();
-					} else {
-						let msg = 'Lametric data is corrupt!';
-						spinner.fail(msg);
-						return reject(msg);
-					}
-				});
-			})
-			.catch((err) => {
-				spinner.fail(
-					`Connection to LaMetric @ ${config.LaMetric.IP} Failed. LaMetric does not seem to linked to this IP.`,
-				);
-				return reject(err);
-			});
+			handleLametricLoginResponse,
+		),
+		fetchAndProcess(
+			`http://${config.LaMetric.IP}:8080/api/v2/device`,
+			null,
+			laMetricAuthKey,
+			handleLametricDataResponse,
+		),
+	];
+
+	return Promise.all(lametricCalls).then(([lametricLogin, lametricData]) => {
+		return Promise.resolve({
+			msg: `Connected to "${lametricLogin.name}" @ ${config.LaMetric.IP} running OS v${lametricLogin.os_version} & Pi-Hole Status v${lametricLogin.version}! (${lametricData.serial_number})`,
+			res: {},
+		});
 	});
 };
+
+/**
+ * Handles the given {@param response} from Lametric login.
+ *
+ * @param response the response to handle.
+ * @returns {Promise<string>} Resolves the promise in case of a valid response. Otherwise an error is thrown.
+ */
+const handleLametricLoginResponse = (response) => {
+	if (isUnauthorized(response)) {
+		throw new Error('Connection to Lametric is unauthorized');
+	}
+	return Promise.resolve({
+		msg: 'Connection to Lametric established',
+		res: response,
+	});
+};
+
+/**
+ * Handles the given {@param response} from Lametric data request.
+ *
+ * @param response the response to handle.
+ * @returns {Promise<string>} Resolves the promise in case of a valid response. Otherwise an error is thrown.
+ */
+const handleLametricDataResponse = (response) => {
+	if (response.name) {
+		return Promise.resolve({ msg: '', res: response });
+	}
+
+	throw new Error('Lametric data is corrupt!');
+};
+
 const mapToBody = (
 	piHoleSummaryData,
 	piHoleTopItemsData,

@@ -12,6 +12,7 @@ const {
 	laMetricDeviceInfo2,
 	laMetricDeviceInfoCorrupt,
 	urlLametricUpdate,
+	mockEmptyResponse,
 } = require('./index.mockdata');
 
 // mock fetch
@@ -90,16 +91,18 @@ describe('testing pi hole for lametric (with debug mode)', () => {
 		let url = 'www.bla.de';
 		let mockResponse = { 1: '123' };
 		fetchMock.get(url, { status: 200, body: mockResponse });
-		let callbackFunction = jest.fn().mockImplementation(() => 'ok');
+		let callbackFunction = jest
+			.fn()
+			.mockImplementation(() => mockEmptyResponse);
 
 		// run & validation
 		await expect(
 			fetchAndProcess(url, null, null, callbackFunction),
-		).resolves.toBeUndefined();
+		).resolves.toEqual({});
 		expect(callbackFunction).toBeCalledTimes(1);
 		expect(callbackFunction).toBeCalledWith(mockResponse);
 		expect(spinner.succeed).toBeCalledTimes(1);
-		expect(spinner.succeed).toBeCalledWith('ok');
+		expect(spinner.succeed).toBeCalledWith(mockEmptyResponse.msg);
 		jest.resetAllMocks();
 		fetchMock.mockReset();
 	});
@@ -116,16 +119,18 @@ describe('testing pi hole for lametric (with debug mode)', () => {
 				headers: { Authorization: mockAuth },
 			},
 		);
-		let callbackFunction = jest.fn().mockImplementation(() => 'ok');
+		let callbackFunction = jest
+			.fn()
+			.mockImplementation(() => mockEmptyResponse);
 
 		// run & validation
 		await expect(
 			fetchAndProcess(url, null, mockAuth, callbackFunction),
-		).resolves.toBeUndefined();
+		).resolves.toEqual({});
 		expect(callbackFunction).toBeCalledTimes(1);
 		expect(callbackFunction).toBeCalledWith(mockResponse);
 		expect(spinner.succeed).toBeCalledTimes(1);
-		expect(spinner.succeed).toBeCalledWith('ok');
+		expect(spinner.succeed).toBeCalledWith(mockEmptyResponse.msg);
 		jest.resetAllMocks();
 		fetchMock.mockReset();
 	});
@@ -145,7 +150,9 @@ describe('testing pi hole for lametric (with debug mode)', () => {
 				body: mockResponse,
 			},
 		);
-		let callbackFunction = jest.fn().mockImplementation(() => 'ok');
+		let callbackFunction = jest
+			.fn()
+			.mockImplementation(() => mockEmptyResponse);
 
 		// run & validation
 		await expect(
@@ -155,11 +162,11 @@ describe('testing pi hole for lametric (with debug mode)', () => {
 				null,
 				callbackFunction,
 			),
-		).resolves.toBeUndefined();
+		).resolves.toEqual({});
 		expect(callbackFunction).toBeCalledTimes(1);
 		expect(callbackFunction).toBeCalledWith(mockResponse);
 		expect(spinner.succeed).toBeCalledTimes(1);
-		expect(spinner.succeed).toBeCalledWith('ok');
+		expect(spinner.succeed).toBeCalledWith(mockEmptyResponse.msg);
 		jest.resetAllMocks();
 		fetchMock.mockReset();
 	});
@@ -183,7 +190,9 @@ describe('testing pi hole for lametric (with debug mode)', () => {
 				headers: { Authorization: mockAuth },
 			},
 		);
-		let callbackFunction = jest.fn().mockImplementation(() => 'ok');
+		let callbackFunction = jest
+			.fn()
+			.mockImplementation(() => mockEmptyResponse);
 
 		// run & validation
 		await expect(
@@ -193,11 +202,11 @@ describe('testing pi hole for lametric (with debug mode)', () => {
 				mockAuth,
 				callbackFunction,
 			),
-		).resolves.toBeUndefined();
+		).resolves.toEqual({});
 		expect(callbackFunction).toBeCalledTimes(1);
 		expect(callbackFunction).toBeCalledWith(mockResponse);
 		expect(spinner.succeed).toBeCalledTimes(1);
-		expect(spinner.succeed).toBeCalledWith('ok');
+		expect(spinner.succeed).toBeCalledWith(mockEmptyResponse.msg);
 		jest.resetAllMocks();
 		fetchMock.mockReset();
 	});
@@ -227,12 +236,14 @@ describe('testing pi hole for lametric (with debug mode)', () => {
 		// init
 		console.warn = jest.fn();
 		let url = 'https://jsonplaceholder.typicode.com/todos/1';
-		let callbackFunction = jest.fn();
+		let callbackFunction = jest
+			.fn()
+			.mockImplementation(() => mockEmptyResponse);
 
 		// run & validation
 		await expect(
 			fetchAndProcess(url, null, null, callbackFunction),
-		).resolves.toBeUndefined();
+		).resolves.toEqual({});
 		expect(callbackFunction).toBeCalledTimes(1);
 		expect(callbackFunction).toBeCalledWith({
 			completed: false,
@@ -303,16 +314,22 @@ describe('testing pi hole for lametric (with debug mode)', () => {
 
 	it('should reject promise, when init of lametric leads to error response', async () => {
 		// init
-		fetchMock.get(lametricNotFoundError.url, {
-			throws: lametricNotFoundError.body,
-		});
+		fetchMock
+			.get(lametricNotFoundError.url, {
+				throws: lametricNotFoundError.body,
+			})
+			.get(laMetricDeviceInfo2.url, {
+				status: 200,
+				body: laMetricDeviceInfo2.body,
+			});
 
 		// run & validation
 		await expect(laMetricTest()).rejects.toEqual(
-			lametricNotFoundError.body,
+			lametricNotFoundError.body.message,
 		);
-		expect(fetchMock).toBeCalledTimes(1);
+		expect(fetchMock).toBeCalledTimes(2);
 		expect(fetchMock).toBeCalledWith(lametricNotFoundError.url, {
+			body: null,
 			headers: { Authorization: 'Basic ZGV2OjQ1Ng==' },
 			method: 'GET',
 		});
@@ -321,17 +338,23 @@ describe('testing pi hole for lametric (with debug mode)', () => {
 
 	it('should reject promise, when connection to found lametric is unauthorized', async () => {
 		// init
-		fetchMock.get(lametricUnauthorized.url, {
-			status: 200,
-			body: lametricUnauthorized.body,
-		});
+		fetchMock
+			.get(lametricUnauthorized.url, {
+				status: 401,
+				body: lametricUnauthorized.body,
+			})
+			.get(laMetricDeviceInfo2.url, {
+				status: 200,
+				body: laMetricDeviceInfo2.body,
+			});
 
 		// run & validation
 		await expect(laMetricTest()).rejects.toEqual(
 			'Connection to Lametric is unauthorized',
 		);
-		expect(fetchMock).toBeCalledTimes(1);
+		expect(fetchMock).toBeCalledTimes(2);
 		expect(fetchMock).toBeCalledWith(lametricUnauthorized.url, {
+			body: null,
 			headers: { Authorization: 'Basic ZGV2OjQ1Ng==' },
 			method: 'GET',
 		});
@@ -356,10 +379,12 @@ describe('testing pi hole for lametric (with debug mode)', () => {
 		);
 		expect(fetchMock).toBeCalledTimes(2);
 		expect(fetchMock).toBeCalledWith(laMetricDeviceInfo.url, {
+			body: null,
 			headers: { Authorization: 'Basic ZGV2OjQ1Ng==' },
 			method: 'GET',
 		});
 		expect(fetchMock).toBeCalledWith(laMetricDeviceInfo2.url, {
+			body: null,
 			headers: { Authorization: 'Basic ZGV2OjQ1Ng==' },
 			method: 'GET',
 		});
@@ -379,13 +404,18 @@ describe('testing pi hole for lametric (with debug mode)', () => {
 			});
 
 		// run & validation
-		await expect(laMetricTest()).resolves.toBeUndefined();
+		await expect(laMetricTest()).resolves.toEqual({
+			msg: 'Connected to "undefined" @ 2.2.2.2 running OS vundefined & Pi-Hole Status v5! (SA170100852500W00BS9)',
+			res: {},
+		});
 		expect(fetchMock).toBeCalledTimes(2);
 		expect(fetchMock).toBeCalledWith(laMetricDeviceInfo.url, {
+			body: null,
 			headers: { Authorization: 'Basic ZGV2OjQ1Ng==' },
 			method: 'GET',
 		});
 		expect(fetchMock).toBeCalledWith(laMetricDeviceInfo2.url, {
+			body: null,
 			headers: { Authorization: 'Basic ZGV2OjQ1Ng==' },
 			method: 'GET',
 		});
