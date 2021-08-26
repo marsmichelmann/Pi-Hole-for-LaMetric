@@ -303,7 +303,7 @@ describe('testing pi hole for lametric (with debug mode)', () => {
 		});
 
 		// run & validation
-		await expect(piHoleTest()).resolves.toBeUndefined();
+		await expect(piHoleTest()).resolves.toEqual(piHoleLogin.body);
 		expect(fetchMock).toBeCalledTimes(1);
 		expect(fetchMock).toBeCalledWith(piHoleLogin.url, {
 			body: null,

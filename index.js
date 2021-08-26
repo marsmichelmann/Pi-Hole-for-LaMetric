@@ -109,7 +109,7 @@ const laMetricTest = () => {
 
 	return Promise.all(lametricCalls).then(([lametricLogin, lametricData]) => {
 		spinner.succeed(
-			`Connected to "${lametricLogin.name}" @ ${config.LaMetric.IP} running OS v${lametricLogin.os_version} & Pi-Hole Status v${lametricLogin.version}! (${lametricData.serial_number})`,
+			`Connected to LaMetric @ ${config.LaMetric.IP} running OS v${lametricLogin.os_version} & Pi-Hole Status v${lametricLogin.version}! (${lametricData.serial_number})`,
 		);
 		return Promise.resolve();
 	});
@@ -225,7 +225,7 @@ const updateLaMetric = () => {
  * @returns {Promise<void>} Resolves the promise in case of a valid response. Otherwise an error is thrown.
  */
 const handleLametricUpdateResponse = (response, payload) => {
-	console.log('received response: ' + response);
+	console.log('\nreceived response: ' + JSON.stringify(response, null, 2));
 	spinner.succeed(
 		`Sent data (${JSON.stringify(payload, null, 2)}) to lametric server`,
 	);
