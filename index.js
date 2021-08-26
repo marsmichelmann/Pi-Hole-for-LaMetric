@@ -127,7 +127,7 @@ const laMetricTest = () => {
  * Handles the given {@param response} from Lametric login.
  *
  * @param response the response to handle.
- * @returns {Promise<string>} Resolves the promise in case of a valid response. Otherwise an error is thrown.
+ * @returns {Promise<{msg: string, res}>} Resolves the promise in case of a valid response. Otherwise an error is thrown.
  */
 const handleLametricLoginResponse = (response) => {
 	if (isUnauthorized(response)) {
@@ -143,7 +143,7 @@ const handleLametricLoginResponse = (response) => {
  * Handles the given {@param response} from Lametric data request.
  *
  * @param response the response to handle.
- * @returns {Promise<string>} Resolves the promise in case of a valid response. Otherwise an error is thrown.
+ * @returns {Promise<{msg: string, res: ({name}|*)}>} Resolves the promise in case of a valid response. Otherwise an error is thrown.
  */
 const handleLametricDataResponse = (response) => {
 	if (response.name) {
@@ -268,7 +268,7 @@ const updateLaMetric = () => {
  * Handles the given {@param response} from Pihole data request.
  *
  * @param response the response to handle.
- * @returns {Promise<string>} Resolves the promise in case of a valid response. Otherwise an error is thrown.
+ * @returns {{msg: string, res}} Resolves the promise in case of a valid response. Otherwise an error is thrown.
  */
 const handlePiholeDataResponse = (response) => {
 	return { msg: '', res: response };
