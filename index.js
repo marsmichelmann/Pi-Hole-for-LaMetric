@@ -184,13 +184,13 @@ const updateLaMetric = () => {
 		),
 	];
 
-	return Promise.all(lametricCalls).then(
-		async ([lametricLogin, lametricData]) => {
+	return Promise.all(lametricCalls)
+		.then(async ([lametricLogin, lametricData]) => {
 			spinner.succeed(
 				`Connected to LaMetric @ ${config.LaMetric.IP} for sending update`,
 			);
 
-			let body = await getPiholeData();
+			let piholeData = await getPiholeData();
 			spinner.start(
 				`Sending update for "${lametricData.name}" @ ${config.LaMetric.IP} to the server`,
 			);
@@ -200,22 +200,26 @@ const updateLaMetric = () => {
 			// 	`https://lametric.glitch.me/pihole/${lametricData.id}`,
 			// 	body,
 			// 	null,
-			// 	() => {},
+			// 	() => handleLametricUpdateResponse(res, body),
 			// );
-			fetch(`https://lametric.glitch.me/pihole/${lametricData.id}`, {
-				method: 'POST',
-				body: body,
-			})
-				.then((res) => handleLametricUpdateResponse(res, body))
+			return fetch(
+				`https://lametric.glitch.me/pihole/${lametricData.id}`,
+				{
+					method: 'POST',
+					body: piholeData,
+				},
+			)
+				.then((res) => handleLametricUpdateResponse(res, piholeData))
 				.catch((err) => {
-					console.log(err);
 					spinner.fail(
 						`Update failed to send for LaMetric @ ${config.LaMetric.IP}. LaMetric does not seem to linked to this IP.`,
 					);
 					return Promise.reject(err);
 				});
-		},
-	);
+		})
+		.catch((err) => {
+			return Promise.reject(err);
+		});
 };
 
 /**
