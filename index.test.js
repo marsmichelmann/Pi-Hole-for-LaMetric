@@ -44,7 +44,7 @@ const { main } = require('./index');
 
 describe('testing pi hole for lametric (with debug mode)', () => {
 	beforeEach(() => {
-		//fetchMock.config.fallbackToNetwork = true;
+		fetchMock.config.fallbackToNetwork = true;
 		jest.useFakeTimers('legacy');
 	});
 
@@ -635,8 +635,15 @@ describe('testing pi hole for lametric (with debug mode)', () => {
 
 	it('should resolve promise, when sending update to lametric is successful', async () => {
 		// init
-		// TODO Reihenfolge
 		fetchMock
+			.get(laMetricDeviceInfo.url, {
+				status: 200,
+				body: laMetricDeviceInfo.body,
+			})
+			.get(laMetricDeviceInfo2.url, {
+				status: 200,
+				body: laMetricDeviceInfo2.body,
+			})
 			.get(piHoleSummaryData.url, {
 				status: 200,
 				body: piHoleSummaryData.body,
@@ -649,14 +656,6 @@ describe('testing pi hole for lametric (with debug mode)', () => {
 				status: 200,
 				body: piHoleRecentBlockedData.body,
 			})
-			.get(laMetricDeviceInfo.url, {
-				status: 200,
-				body: laMetricDeviceInfo.body,
-			})
-			.get(laMetricDeviceInfo2.url, {
-				status: 200,
-				body: laMetricDeviceInfo2.body,
-			})
 			.post(urlLametricUpdate, {
 				// post request to lametric.iderp.io
 				status: 200,
@@ -666,33 +665,34 @@ describe('testing pi hole for lametric (with debug mode)', () => {
 		// run & validation
 		await expect(updateLaMetric()).resolves.toBeUndefined();
 		expect(fetchMock).toBeCalledTimes(6);
-		expect(fetchMock).toBeCalledWith(piHoleSummaryData.url, undefined);
-		expect(fetchMock).toBeCalledWith(piHoleTopItemsData.url, undefined);
-		expect(fetchMock).toBeCalledWith(
-			piHoleRecentBlockedData.url,
-			undefined,
-		);
+		expect(fetchMock).toBeCalledWith(piHoleSummaryData.url, {
+			body: null,
+			headers: {},
+			method: 'GET',
+		});
+		expect(fetchMock).toBeCalledWith(piHoleTopItemsData.url, {
+			body: null,
+			headers: {},
+			method: 'GET',
+		});
+		expect(fetchMock).toBeCalledWith(piHoleRecentBlockedData.url, {
+			body: null,
+			headers: {},
+			method: 'GET',
+		});
 		expect(fetchMock).toBeCalledWith(laMetricDeviceInfo.url, {
 			headers: { Authorization: 'Basic ZGV2OjQ1Ng==' },
+			body: null,
 			method: 'GET',
 		});
 		expect(fetchMock).toBeCalledWith(laMetricDeviceInfo2.url, {
 			headers: { Authorization: 'Basic ZGV2OjQ1Ng==' },
+			body: null,
 			method: 'GET',
 		});
-		let body = {
-			blockListSize: '1,399,949',
-			dnsQueriesToday: '47,730',
-			adsBlockedToday: '7,558',
-			totalClientsSeen: '32',
-			totalDNSQueries: '47,730',
-			topQuery: 'data.iot.us-east-1.amazonaws.com (3741 Queries)',
-			topBlockedQuery: 'web.vortex.data.microsoft.com (928 Queries)',
-			lastBlockedQuery: 'analytics.ff.avast.com',
-		};
 		expect(fetchMock).toBeCalledWith(urlLametricUpdate, {
 			method: 'POST',
-			body: body,
+			body: mockPiHoleCombinedData,
 		});
 		fetchMock.mockReset();
 	});
