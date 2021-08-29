@@ -394,6 +394,7 @@ describe('testing pi hole for lametric (with debug mode)', () => {
 
 	it('should resolve promise, when init of lametric is successful', async () => {
 		// init
+
 		fetchMock
 			.get(laMetricDeviceInfo.url, {
 				status: 200,
@@ -405,10 +406,10 @@ describe('testing pi hole for lametric (with debug mode)', () => {
 			});
 
 		// run & validation
-		await expect(laMetricTest()).resolves.toEqual({
-			msg: 'Connected to "undefined" @ 2.2.2.2 running OS vundefined & Pi-Hole Status v5! (SA170100852500W00BS9)',
-			res: {},
-		});
+		await expect(laMetricTest()).resolves.toBeUndefined();
+		expect(spinner.succeed).toHaveBeenLastCalledWith(
+			'Connected to LaMetric @ 2.2.2.2 running OS vundefined & Pi-Hole Status v5! (SA170100852500W00BS9)',
+		);
 		expect(fetchMock).toBeCalledTimes(2);
 		expect(fetchMock).toBeCalledWith(laMetricDeviceInfo.url, {
 			body: null,
