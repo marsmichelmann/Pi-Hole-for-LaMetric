@@ -195,19 +195,20 @@ const updateLaMetric = () => {
 				`Sending update for "${lametricData.name}" @ ${config.LaMetric.IP} to the server`,
 			);
 
+			// TODO switch to fetchAndProcess
 			// fetchAndProcess(
 			// 	`https://lametric.glitch.me/pihole/${lametricData.id}`,
 			// 	body,
 			// 	null,
 			// 	() => {},
 			// );
-
 			fetch(`https://lametric.glitch.me/pihole/${lametricData.id}`, {
 				method: 'POST',
 				body: body,
 			})
 				.then((res) => handleLametricUpdateResponse(res, body))
 				.catch((err) => {
+					console.log(err);
 					spinner.fail(
 						`Update failed to send for LaMetric @ ${config.LaMetric.IP}. LaMetric does not seem to linked to this IP.`,
 					);
