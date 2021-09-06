@@ -43,6 +43,7 @@ const fetchAndProcess = (url, payload, auth, callbackFunction) => {
 			return Promise.resolve(res);
 		})
 		.catch((errorMsg) => {
+			console.log(errorMsg);
 			spinner.fail(errorMsg.message);
 			return Promise.reject(errorMsg.message);
 		});
@@ -196,11 +197,11 @@ const updateLaMetric = () => {
 			);
 
 			// TODO switch to fetchAndProcess
-			// fetchAndProcess(
+			// return fetchAndProcess(
 			// 	`https://lametric.glitch.me/pihole/${lametricData.id}`,
-			// 	body,
+			// 	piholeData,
 			// 	null,
-			// 	() => handleLametricUpdateResponse(res, body),
+			// 	(res) => handleLametricUpdateResponse(res, piholeData),
 			// );
 			return fetch(
 				`https://lametric.glitch.me/pihole/${lametricData.id}`,
@@ -230,11 +231,12 @@ const updateLaMetric = () => {
  * @returns {Promise<void>} Resolves the promise in case of a valid response. Otherwise an error is thrown.
  */
 const handleLametricUpdateResponse = (response, payload) => {
-	console.log('\nreceived response: ' + JSON.stringify(response, null, 2));
+	// TODO payload needed?
+	//console.log('\nreceived response: ' + JSON.stringify(response, null, 2));
 	spinner.succeed(
 		`Sent data (${JSON.stringify(payload, null, 2)}) to lametric server`,
 	);
-	return Promise.resolve();
+	return Promise.resolve({ msg: 'ignore', res: response });
 };
 
 /**
