@@ -13,7 +13,7 @@
   "license": "ISC",
   "dependencies": {
     "node-fetch": "2.6.1",
-    "npm": "7.21.0",
+    "npm": "7.22.0",
     "ora": "5.4.1"
   },
   "devDependencies": {
