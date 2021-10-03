@@ -68,7 +68,7 @@ const piHoleTest = () => {
 /**
  * Handles the given {@param response} from Pihole login.
  * @param response the response to handle.
- * @returns {Promise<{msg: string, res: ({querytypes}|*)}>} Resolves the promise in case of a valid response. Otherwise an error is thrown.
+ * @returns {Promise<{msg: string, res: ({querytypes}|*)}>} Resolves the promise in case of a valid response, otherwise an error is thrown.
  */
 const handlePiholeLoginResponse = (response) => {
 	spinner.succeed(
@@ -120,7 +120,7 @@ const laMetricTest = () => {
  * Handles the given {@param response} from Lametric login.
  *
  * @param response the response to handle.
- * @returns {Promise<{msg: string, res}>} Resolves the promise in case of a valid response. Otherwise an error is thrown.
+ * @returns {Promise<{msg: string, res}>} Resolves the promise in case of a valid response, otherwise an error is thrown.
  */
 const handleLametricLoginResponse = (response) => {
 	if (isUnauthorized(response)) {
@@ -136,7 +136,7 @@ const handleLametricLoginResponse = (response) => {
  * Handles the given {@param response} from Lametric data request.
  *
  * @param response the response to handle.
- * @returns {Promise<{msg: string, res: ({name}|*)}>} Resolves the promise in case of a valid response. Otherwise an error is thrown.
+ * @returns {Promise<{msg: string, res: ({name}|*)}>} Resolves the promise in case of a valid response, otherwise an error is thrown.
  */
 const handleLametricDataResponse = (response) => {
 	if (response.name) {
@@ -186,7 +186,7 @@ const updateLaMetric = () => {
 	];
 
 	return Promise.all(lametricCalls)
-		.then(async ([lametricLogin, lametricData]) => {
+		.then(async ([, lametricData]) => {
 			spinner.succeed(
 				`Connected to LaMetric @ ${config.LaMetric.IP} for sending update`,
 			);
@@ -228,11 +228,11 @@ const updateLaMetric = () => {
  *
  * @param response the response to handle.
  * @param payload the sent payload.
- * @returns {Promise<void>} Resolves the promise in case of a valid response. Otherwise an error is thrown.
+ * @returns {Promise<{msg: string, res}>} Resolves the promise in case of a valid response, otherwise an error is thrown.
  */
 const handleLametricUpdateResponse = (response, payload) => {
 	// TODO payload needed?
-	//console.log('\nreceived response: ' + JSON.stringify(response, null, 2));
+	//console.log('\n received response: ' + JSON.stringify(response, null, 2));
 	spinner.succeed(
 		`Sent data (${JSON.stringify(payload, null, 2)}) to lametric server`,
 	);
@@ -279,7 +279,7 @@ const getPiholeData = () => {
  * Handles the given {@param response} from Pihole data request.
  *
  * @param response the response to handle.
- * @returns {{msg: string, res}} Resolves the promise in case of a valid response. Otherwise an error is thrown.
+ * @returns {{msg: string, res}} Resolves the promise in case of a valid response, otherwise an error is thrown.
  */
 const handlePiholeDataResponse = (response) => {
 	return { msg: 'ignore', res: response };
@@ -309,7 +309,7 @@ const main = () => {
 };
 
 /**
- * Checks if we have a unauthorized connection to lametric.
+ * Checks if we have an unauthorized connection to lametric.
  * @param response the response to check.
  */
 const isUnauthorized = (response) => {
@@ -321,7 +321,7 @@ const isUnauthorized = (response) => {
 };
 
 /**
- * Maps the given index of the given data map to human readable string.
+ * Maps the given index of the given data map to human-readable string.
  * @param data.
  * @param index the desired index.
  */
