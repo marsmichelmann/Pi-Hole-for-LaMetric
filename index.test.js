@@ -690,11 +690,10 @@ describe('testing pi hole for lametric (with debug mode)', () => {
 			body: null,
 			method: 'GET',
 		});
-		// TODO check how to expect this
-		// expect(fetchMock).toBeCalledWith(urlLametricUpdate, {
-		// 	method: 'POST',
-		// 	body: mockPiHoleCombinedData,
-		// });
+		expect(fetchMock).toBeCalledWith(urlLametricUpdate, {
+			method: 'POST',
+			body: mockPiHoleCombinedData,
+		});
 		fetchMock.mockReset();
 	});
 
