@@ -16,12 +16,12 @@
     "ora": "5.4.1"
   },
   "devDependencies": {
-    "babel-jest": "27.4.2",
+    "babel-jest": "27.4.4",
     "babel-plugin-rewire": "1.2.0",
     "fetch-mock-jest": "1.5.1",
-    "jest": "27.4.3",
-    "jest-cli": "27.4.3",
-    "prettier": "2.5.0"
+    "jest": "27.4.4",
+    "jest-cli": "27.4.4",
+    "prettier": "2.5.1"
   },
   "jest": {
     "collectCoverage": true,
