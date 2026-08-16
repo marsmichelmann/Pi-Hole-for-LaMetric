@@ -101,6 +101,7 @@ const mockPiHoleCombinedStats = {
 	blockListSize: 1399949,
 	dnsQueriesToday: 47730,
 	adsBlockedToday: 7558,
+	percentBlocked: 16,
 	totalClientsSeen: 32,
 	topQuery: 'data.iot.us-east-1.amazonaws.com (3741 Queries)',
 	topBlockedQuery: 'web.vortex.data.microsoft.com (928 Queries)',
@@ -109,6 +110,7 @@ const mockPiHoleCombinedStats = {
 
 const mockLametricFrames = {
 	frames: [
+		{ goalData: { start: 0, current: 16, end: 100, unit: '%' } },
 		{ text: '7558 geblockt heute' },
 		{ text: '47730 Anfragen heute' },
 		{ text: '1399949 Domains auf der Blockliste' },

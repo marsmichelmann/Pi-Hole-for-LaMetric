@@ -119,7 +119,7 @@ const formatTopDomain = (domain, fallback) =>
 
 /**
  * Collects and combines the Pi-hole stats relevant for the LaMetric display.
- * @returns {Promise<{adsBlockedToday: number, blockListSize: number, dnsQueriesToday: number, lastBlockedQuery: string, topBlockedQuery: string, topQuery: string, totalClientsSeen: number}>}
+ * @returns {Promise<{adsBlockedToday: number, blockListSize: number, dnsQueriesToday: number, lastBlockedQuery: string, percentBlocked: number, topBlockedQuery: string, topQuery: string, totalClientsSeen: number}>}
  */
 const collectPiholeStats = () => {
 	return ensureLoggedIn()
@@ -135,6 +135,7 @@ const collectPiholeStats = () => {
 			blockListSize: summary.gravity.domains_being_blocked,
 			dnsQueriesToday: summary.queries.total,
 			adsBlockedToday: summary.queries.blocked,
+			percentBlocked: Math.round(summary.queries.percent_blocked),
 			totalClientsSeen: summary.clients.total,
 			topQuery: formatTopDomain(topQuery, 'Noch keine Anfragen'),
 			topBlockedQuery: formatTopDomain(
@@ -150,24 +151,42 @@ const collectPiholeStats = () => {
  * "My Data DIY" app. Icon IDs are optional and taken from config.Icons (see
  * example.config.json) - pick your own from https://developer.lametric.com/icons.
  * @param stats the combined stats, as returned by collectPiholeStats.
- * @returns {{frames: [{text: string}]}}
+ * @returns {{frames: [{goalData: {current: number, end: number, start: number, unit: string}}, {text: string}]}}
  */
 const mapStatsToFrames = (stats) => {
 	const icons = config.Icons || {};
-	const frame = (key, text) =>
-		icons[key] ? { text, icon: icons[key] } : { text };
+	const withIcon = (key, frameBody) =>
+		icons[key] ? { ...frameBody, icon: icons[key] } : frameBody;
+	const textFrame = (key, text) => withIcon(key, { text });
 
 	return {
 		frames: [
-			frame('adsBlockedToday', `${stats.adsBlockedToday} geblockt heute`),
-			frame('dnsQueriesToday', `${stats.dnsQueriesToday} Anfragen heute`),
-			frame(
+			withIcon('percentBlocked', {
+				goalData: {
+					start: 0,
+					current: stats.percentBlocked,
+					end: 100,
+					unit: '%',
+				},
+			}),
+			textFrame(
+				'adsBlockedToday',
+				`${stats.adsBlockedToday} geblockt heute`,
+			),
+			textFrame(
+				'dnsQueriesToday',
+				`${stats.dnsQueriesToday} Anfragen heute`,
+			),
+			textFrame(
 				'blockListSize',
 				`${stats.blockListSize} Domains auf der Blockliste`,
 			),
-			frame('totalClientsSeen', `${stats.totalClientsSeen} Clients`),
-			frame('topBlockedQuery', `Top geblockt: ${stats.topBlockedQuery}`),
-			frame(
+			textFrame('totalClientsSeen', `${stats.totalClientsSeen} Clients`),
+			textFrame(
+				'topBlockedQuery',
+				`Top geblockt: ${stats.topBlockedQuery}`,
+			),
+			textFrame(
 				'lastBlockedQuery',
 				`Zuletzt geblockt: ${stats.lastBlockedQuery}`,
 			),

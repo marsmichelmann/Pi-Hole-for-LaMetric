@@ -7,6 +7,12 @@ that a LaMetric clock polls via the official
 [My Data DIY](https://apps.lametric.com/apps/my_data_diy__with_no-code_possibilities_/8942)
 app - no cloud relay involved, everything stays on your LAN.
 
+Shows a percent-blocked progress bar plus scrolling frames for blocked/total
+queries today, blocklist size, client count, and the top blocked domain -
+an approximation of the original (now discontinued upstream)
+[Pi-Hole Status](https://apps.lametric.com/apps/pi-hole_status/6943) app,
+built on the generic My Data DIY frame format rather than a bespoke app.
+
 ```
 LaMetric clock (My Data DIY, polls periodically)
         │  GET http://<this-host>:<Server.Port>/lametric
@@ -28,8 +34,11 @@ Pi-hole
      [application password](https://docs.pi-hole.net/api/) - never commit
      the real value, `config.json` is gitignored).
    - `Server.Port` - the port this program listens on (default `3030`).
-   - `Icons` (optional) - LaMetric icon IDs per stat, picked from
+   - `Icons` (optional) - LaMetric icon IDs per frame, picked from
      [developer.lametric.com/icons](https://developer.lametric.com/icons).
+     Keys: `percentBlocked`, `adsBlockedToday`, `dnsQueriesToday`,
+     `blockListSize`, `totalClientsSeen`, `topBlockedQuery`,
+     `lastBlockedQuery`.
 4. `npm start`
 5. On your phone, add the **My Data DIY** app to your LaMetric clock and
    configure its poll URL as `http://<this-host>:<Server.Port>/lametric`.

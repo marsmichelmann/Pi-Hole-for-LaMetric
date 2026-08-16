@@ -228,8 +228,20 @@ describe('pi-hole for lametric', () => {
 
 			// run & validation
 			const frames = mapStatsToFrames(mockPiHoleCombinedStats);
-			expect(frames.frames[0]).toEqual({
+			expect(frames.frames[1]).toEqual({
 				text: '7558 geblockt heute',
+				icon: '1957',
+			});
+		});
+
+		it('includes an icon on the goalData frame when configured', () => {
+			// init
+			mockConfig.Icons = { percentBlocked: '1957' };
+
+			// run & validation
+			const frames = mapStatsToFrames(mockPiHoleCombinedStats);
+			expect(frames.frames[0]).toEqual({
+				goalData: { start: 0, current: 16, end: 100, unit: '%' },
 				icon: '1957',
 			});
 		});
