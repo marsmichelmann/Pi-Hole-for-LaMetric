@@ -1,19 +1,17 @@
 // import mock data
 const {
-	piHoleError,
-	piHoleInvalidData,
-	piHoleLogin,
+	mockConfig,
+	authOkay,
+	authInvalidPassword,
+	unauthorizedError,
 	piHoleSummaryData,
-	piHoleTopItemsData,
+	piHoleTopQueriesData,
+	piHoleTopBlockedData,
+	piHoleTopQueriesEmpty,
 	piHoleRecentBlockedData,
-	lametricNotFoundError,
-	lametricUnauthorized,
-	laMetricDeviceInfo,
-	laMetricDeviceInfo2,
-	laMetricDeviceInfoCorrupt,
-	urlLametricUpdate,
-	mockEmptyResponse,
-	mockPiHoleCombinedData,
+	piHoleRecentBlockedEmpty,
+	mockPiHoleCombinedStats,
+	mockLametricFrames,
 } = require('./index.mockdata');
 
 // mock fetch
@@ -23,758 +21,322 @@ jest.mock('node-fetch', () => require('fetch-mock-jest').sandbox());
 // mock config
 jest.mock('./config.json', () => require('./index.mockdata').mockConfig);
 
-// mock ora
-const { spinner, getPiholeData } = require('./index');
-spinner.start = jest.fn();
-spinner.succeed = jest.fn();
-spinner.fail = jest.fn();
+const index = require('./index.js');
+const { login, collectPiholeStats, mapStatsToFrames, getFrames, startServer } =
+	index;
 
-// import private functions to test
-const logIfDebug = require('./index.js').__get__('logIfDebug');
-const piHoleTest = require('./index.js').__get__('piHoleTest');
-const mapToBody = require('./index.js').__get__('mapToBody');
-const mapKeyValuePairToString = require('./index.js').__get__(
-	'mapKeyValuePairToString',
-);
-const startUpdateTimer = require('./index.js').__get__('startUpdateTimer');
-const laMetricTest = require('./index.js').__get__('laMetricTest');
-const updateLaMetric = require('./index.js').__get__('updateLaMetric');
-const fetchAndProcess = require('./index.js').__get__('fetchAndProcess');
-const { main } = require('./index');
+// import private functions/state to test via babel-plugin-rewire
+const authenticatedGet = index.__get__('authenticatedGet');
+const handleRequest = index.__get__('handleRequest');
+const logIfDebug = index.__get__('logIfDebug');
 
-describe('testing pi hole for lametric (with debug mode)', () => {
+// mocks a fully successful round of Pi-hole stats calls (summary, both top
+// domain queries, recent blocked) - shared by several higher-level tests.
+const mockAllStatsEndpoints = () => {
+	fetchMock
+		.get(piHoleSummaryData.url, {
+			status: 200,
+			body: piHoleSummaryData.body,
+		})
+		.get(piHoleTopQueriesData.url, {
+			status: 200,
+			body: piHoleTopQueriesData.body,
+		})
+		.get(piHoleTopBlockedData.url, {
+			status: 200,
+			body: piHoleTopBlockedData.body,
+		})
+		.get(piHoleRecentBlockedData.url, {
+			status: 200,
+			body: piHoleRecentBlockedData.body,
+		});
+};
+
+// mocks all four Pi-hole stats calls failing - used to test the "Pi-hole
+// unreachable" paths without leaving unmatched-request warnings for the
+// endpoints Promise.all still calls alongside the one under test.
+const mockAllStatsEndpointsFailing = () => {
+	fetchMock
+		.get(piHoleSummaryData.url, { status: 500, body: {} })
+		.get(piHoleTopQueriesData.url, { status: 500, body: {} })
+		.get(piHoleTopBlockedData.url, { status: 500, body: {} })
+		.get(piHoleRecentBlockedData.url, { status: 500, body: {} });
+};
+
+describe('pi-hole for lametric', () => {
 	beforeEach(() => {
-		fetchMock.config.fallbackToNetwork = true;
-		jest.useFakeTimers('legacy');
+		index.__set__('cachedSid', null);
+		index.__set__('cache', { expiresAt: 0, frames: null });
+		mockConfig.Icons = {};
+		fetchMock.post(authOkay.url, { status: 200, body: authOkay.body });
 	});
 
 	afterEach(() => {
-		jest.clearAllTimers();
-	});
-
-	it('should log, if debug mode is enabled', () => {
-		// init
-		const spyConsole = jest.fn();
-		console.log = spyConsole;
-
-		// run
-		logIfDebug('test msg');
-
-		// validation
-		expect(spyConsole).toHaveBeenCalledTimes(1);
-	});
-
-	it('should handle interval timer', async () => {
-		// init
-		const callbackMock = jest.fn();
-
-		// run
-		startUpdateTimer(callbackMock);
-
-		// At this point in time, there should have been a single call to
-		// setTimeout to schedule in 60 sec.
-		expect(setInterval).toHaveBeenCalledTimes(1);
-		expect(setInterval).toHaveBeenLastCalledWith(
-			expect.any(Function),
-			60000,
-		);
-
-		// Fast forward and exhaust only currently pending timers
-		// (but not any new timers that get created during that process)
-		jest.runOnlyPendingTimers();
-
-		// At this point, our 1-second timer should have fired it's callback
-		expect(callbackMock).toBeCalled();
-	});
-
-	it('should fetch url without authorization header and without payload', async () => {
-		// init
-		let url = 'www.bla.de';
-		let mockResponse = { 1: '123' };
-		fetchMock.get(url, { status: 200, body: mockResponse });
-		let callbackFunction = jest
-			.fn()
-			.mockImplementation(() => mockEmptyResponse);
-
-		// run & validation
-		await expect(
-			fetchAndProcess(url, null, null, callbackFunction),
-		).resolves.toEqual({});
-		expect(callbackFunction).toBeCalledTimes(1);
-		expect(callbackFunction).toBeCalledWith(mockResponse);
-		expect(spinner.succeed).toBeCalledTimes(1);
-		expect(spinner.succeed).toBeCalledWith(mockEmptyResponse.msg);
-		jest.resetAllMocks();
 		fetchMock.mockReset();
 	});
 
-	it('should fetch url with authorization header and without payload', async () => {
-		// init
-		let url = 'www.bla.de';
-		let mockResponse = { 1: '123' };
-		let mockAuth = 'secureTest';
-		fetchMock.get(
-			url,
-			{ status: 200, body: mockResponse },
-			{
-				headers: { Authorization: mockAuth },
-			},
-		);
-		let callbackFunction = jest
-			.fn()
-			.mockImplementation(() => mockEmptyResponse);
+	describe('logIfDebug', () => {
+		it('logs when debug mode is enabled', () => {
+			// init
+			const spyConsole = jest.fn();
+			console.log = spyConsole;
 
-		// run & validation
-		await expect(
-			fetchAndProcess(url, null, mockAuth, callbackFunction),
-		).resolves.toEqual({});
-		expect(callbackFunction).toBeCalledTimes(1);
-		expect(callbackFunction).toBeCalledWith(mockResponse);
-		expect(spinner.succeed).toBeCalledTimes(1);
-		expect(spinner.succeed).toBeCalledWith(mockEmptyResponse.msg);
-		jest.resetAllMocks();
-		fetchMock.mockReset();
+			// run
+			logIfDebug('test msg');
+
+			// validation
+			expect(spyConsole).toHaveBeenCalledTimes(1);
+		});
+
+		it("doesn't log when debug mode is disabled", () => {
+			// init
+			const spyConsole = jest.fn();
+			console.log = spyConsole;
+			mockConfig.debugMode = false;
+
+			// run
+			logIfDebug('test msg');
+
+			// validation
+			expect(spyConsole).toHaveBeenCalledTimes(0);
+			mockConfig.debugMode = true;
+		});
 	});
 
-	it('should fetch url without authorization header and with payload', async () => {
-		// init
-		let url = 'www.bla.de';
-		let mockPayload = { bla: 'abc' };
-		let mockResponse = { 1: '123' };
-		fetchMock.post(
-			{
-				url,
-				body: mockPayload,
-			},
-			{
-				status: 200,
-				body: mockResponse,
-			},
-		);
-		let callbackFunction = jest
-			.fn()
-			.mockImplementation(() => mockEmptyResponse);
+	describe('login', () => {
+		it('resolves the session ID on a correct password', async () => {
+			// run & validation
+			await expect(login()).resolves.toEqual(authOkay.body.session.sid);
+		});
 
-		// run & validation
-		await expect(
-			fetchAndProcess(
-				url,
-				JSON.stringify(mockPayload),
-				null,
-				callbackFunction,
-			),
-		).resolves.toEqual({});
-		expect(callbackFunction).toBeCalledTimes(1);
-		expect(callbackFunction).toBeCalledWith(mockResponse);
-		expect(spinner.succeed).toBeCalledTimes(1);
-		expect(spinner.succeed).toBeCalledWith(mockEmptyResponse.msg);
-		jest.resetAllMocks();
-		fetchMock.mockReset();
+		it('rejects with the Pi-hole message on an incorrect password', async () => {
+			// init
+			fetchMock.post(
+				authOkay.url,
+				{ status: 400, body: authInvalidPassword.body },
+				{ overwriteRoutes: true },
+			);
+
+			// run & validation
+			await expect(login()).rejects.toThrow('password incorrect');
+		});
 	});
 
-	it('should fetch url with authorization header and with payload', async () => {
-		// init
-		let url = 'www.bla.de';
-		let mockPayload = { bla: 'abc' };
-		let mockResponse = { 1: '123' };
-		let mockAuth = 'secureTest';
-		fetchMock.post(
-			{
-				url,
-				body: mockPayload,
-			},
-			{
-				status: 200,
-				body: mockResponse,
-			},
-			{
-				headers: { Authorization: mockAuth },
-			},
-		);
-		let callbackFunction = jest
-			.fn()
-			.mockImplementation(() => mockEmptyResponse);
-
-		// run & validation
-		await expect(
-			fetchAndProcess(
-				url,
-				JSON.stringify(mockPayload),
-				mockAuth,
-				callbackFunction,
-			),
-		).resolves.toEqual({});
-		expect(callbackFunction).toBeCalledTimes(1);
-		expect(callbackFunction).toBeCalledWith(mockResponse);
-		expect(spinner.succeed).toBeCalledTimes(1);
-		expect(spinner.succeed).toBeCalledWith(mockEmptyResponse.msg);
-		jest.resetAllMocks();
-		fetchMock.mockReset();
-	});
-
-	it('should catch error on fetch of url', async () => {
-		// init
-		let url = 'www.bla.de';
-		let error = new Error('test');
-		fetchMock.get(url, {
-			status: 500,
-			throws: error,
-		});
-		let callbackFunction = jest.fn();
-
-		// run & validation
-		await expect(
-			fetchAndProcess(url, null, null, callbackFunction),
-		).rejects.toEqual(error.message);
-		expect(spinner.fail).toBeCalledTimes(1);
-		expect(spinner.fail).toBeCalledWith(error.message);
-		expect(callbackFunction).toBeCalledTimes(0);
-		expect(spinner.succeed).toBeCalledTimes(0);
-		fetchMock.mockReset();
-	});
-
-	it('should fetch Json Placeholder', async () => {
-		// init
-		console.warn = jest.fn();
-		let url = 'https://jsonplaceholder.typicode.com/todos/1';
-		let callbackFunction = jest
-			.fn()
-			.mockImplementation(() => mockEmptyResponse);
-
-		// run & validation
-		await expect(
-			fetchAndProcess(url, null, null, callbackFunction),
-		).resolves.toEqual({});
-		expect(callbackFunction).toBeCalledTimes(1);
-		expect(callbackFunction).toBeCalledWith({
-			completed: false,
-			id: 1,
-			title: 'delectus aut autem',
-			userId: 1,
-		});
-		fetchMock.mockReset();
-	});
-
-	it('should reject promise, when init of pi hole leads to error response', async () => {
-		// init
-		console.log = jest.fn();
-		fetchMock.get(piHoleError.url, { status: 200, body: piHoleError.body });
-
-		// run & validation
-		await expect(piHoleTest()).rejects.toEqual(
-			'Pi-Hole Auth Invalid! Make sure the supplied key is correct.',
-		);
-		expect(fetchMock).toBeCalledTimes(1);
-		expect(fetchMock).toBeCalledWith(piHoleError.url, {
-			body: null,
-			headers: {},
-			method: 'GET',
-		});
-		fetchMock.mockReset();
-	});
-
-	it('should reject promise, when init of pi hole leads to unexpected response', async () => {
-		// init
-		console.log = jest.fn();
-		fetchMock.get(piHoleInvalidData.url, {
-			status: 200,
-			body: piHoleInvalidData.body,
-		});
-
-		// run & validation
-		await expect(piHoleTest()).rejects.toEqual(
-			'Pi-Hole Auth Invalid! Make sure the supplied key is correct.',
-		);
-		expect(fetchMock).toBeCalledTimes(1);
-		expect(fetchMock).toBeCalledWith(piHoleInvalidData.url, {
-			body: null,
-			headers: {},
-			method: 'GET',
-		});
-		fetchMock.mockReset();
-	});
-
-	it('should resolve promise, when init of pi hole is successful', async () => {
-		// init
-		console.log = jest.fn();
-		fetchMock.get(piHoleLogin.url, {
-			status: 200,
-			body: piHoleLogin.body,
-		});
-
-		// run & validation
-		await expect(piHoleTest()).resolves.toEqual(piHoleLogin.body);
-		expect(fetchMock).toBeCalledTimes(1);
-		expect(fetchMock).toBeCalledWith(piHoleLogin.url, {
-			body: null,
-			headers: {},
-			method: 'GET',
-		});
-		fetchMock.mockReset();
-	});
-
-	it('should reject promise, when init of lametric leads to error response', async () => {
-		// init
-		fetchMock
-			.get(lametricNotFoundError.url, {
-				throws: lametricNotFoundError.body,
-			})
-			.get(laMetricDeviceInfo2.url, {
-				status: 200,
-				body: laMetricDeviceInfo2.body,
-			});
-
-		// run & validation
-		await expect(laMetricTest()).rejects.toEqual(
-			lametricNotFoundError.body.message,
-		);
-		expect(fetchMock).toBeCalledTimes(2);
-		expect(fetchMock).toBeCalledWith(lametricNotFoundError.url, {
-			body: null,
-			headers: { Authorization: 'Basic ZGV2OjQ1Ng==' },
-			method: 'GET',
-		});
-		fetchMock.mockReset();
-	});
-
-	it('should reject promise, when connection to found lametric is unauthorized', async () => {
-		// init
-		fetchMock
-			.get(lametricUnauthorized.url, {
-				status: 401,
-				body: lametricUnauthorized.body,
-			})
-			.get(laMetricDeviceInfo2.url, {
-				status: 200,
-				body: laMetricDeviceInfo2.body,
-			});
-
-		// run & validation
-		await expect(laMetricTest()).rejects.toEqual(
-			'Connection to Lametric is unauthorized',
-		);
-		expect(fetchMock).toBeCalledTimes(2);
-		expect(fetchMock).toBeCalledWith(lametricUnauthorized.url, {
-			body: null,
-			headers: { Authorization: 'Basic ZGV2OjQ1Ng==' },
-			method: 'GET',
-		});
-		fetchMock.mockReset();
-	});
-
-	it('should reject promise, when init of lametric is successful, but data is corrupt', async () => {
-		// init
-		fetchMock
-			.get(laMetricDeviceInfo.url, {
-				status: 200,
-				body: laMetricDeviceInfo.body,
-			})
-			.get(laMetricDeviceInfo2.url, {
-				status: 200,
-				body: laMetricDeviceInfoCorrupt,
-			});
-
-		// run & validation
-		await expect(laMetricTest()).rejects.toEqual(
-			'Lametric data is corrupt!',
-		);
-		expect(fetchMock).toBeCalledTimes(2);
-		expect(fetchMock).toBeCalledWith(laMetricDeviceInfo.url, {
-			body: null,
-			headers: { Authorization: 'Basic ZGV2OjQ1Ng==' },
-			method: 'GET',
-		});
-		expect(fetchMock).toBeCalledWith(laMetricDeviceInfo2.url, {
-			body: null,
-			headers: { Authorization: 'Basic ZGV2OjQ1Ng==' },
-			method: 'GET',
-		});
-		fetchMock.mockReset();
-	});
-
-	it('should resolve promise, when init of lametric is successful', async () => {
-		// init
-
-		fetchMock
-			.get(laMetricDeviceInfo.url, {
-				status: 200,
-				body: laMetricDeviceInfo.body,
-			})
-			.get(laMetricDeviceInfo2.url, {
-				status: 200,
-				body: laMetricDeviceInfo2.body,
-			});
-
-		// run & validation
-		await expect(laMetricTest()).resolves.toBeUndefined();
-		expect(spinner.succeed).toHaveBeenLastCalledWith(
-			'Connected to LaMetric @ 2.2.2.2 running OS vundefined & Pi-Hole Status v5! (SA170100852500W00BS9)',
-		);
-		expect(fetchMock).toBeCalledTimes(2);
-		expect(fetchMock).toBeCalledWith(laMetricDeviceInfo.url, {
-			body: null,
-			headers: { Authorization: 'Basic ZGV2OjQ1Ng==' },
-			method: 'GET',
-		});
-		expect(fetchMock).toBeCalledWith(laMetricDeviceInfo2.url, {
-			body: null,
-			headers: { Authorization: 'Basic ZGV2OjQ1Ng==' },
-			method: 'GET',
-		});
-		fetchMock.mockReset();
-	});
-
-	it('should reject promise, when connection to found lametric is unauthorized on calling updateLaMetric', async () => {
-		// init
-		fetchMock
-			.get(laMetricDeviceInfo.url, {
-				status: 401,
-				body: lametricUnauthorized.body,
-			})
-			.get(laMetricDeviceInfo2.url, {
-				status: 200,
-				body: laMetricDeviceInfo2.body,
-			});
-
-		// run & validation
-		await expect(updateLaMetric()).rejects.toEqual(
-			'Connection to Lametric is unauthorized',
-		);
-		expect(fetchMock).toBeCalledTimes(2);
-		expect(fetchMock).toBeCalledWith(laMetricDeviceInfo.url, {
-			body: null,
-			headers: { Authorization: 'Basic ZGV2OjQ1Ng==' },
-			method: 'GET',
-		});
-		expect(fetchMock).toBeCalledWith(laMetricDeviceInfo2.url, {
-			body: null,
-			headers: { Authorization: 'Basic ZGV2OjQ1Ng==' },
-			method: 'GET',
-		});
-		fetchMock.mockReset();
-	});
-
-	it('should reject promise, when init of lametric on calling updateLaMetric leads to error response', async () => {
-		// init
-		fetchMock
-			.get(laMetricDeviceInfo.url, {
-				status: 200,
-				body: laMetricDeviceInfo.body,
-			})
-			.get(laMetricDeviceInfo2.url, {
-				status: 200,
-				body: {},
-			});
-
-		// run & validation
-		await expect(updateLaMetric()).rejects.toEqual(
-			'Lametric data is corrupt!',
-		);
-		expect(fetchMock).toBeCalledTimes(2);
-		expect(fetchMock).toBeCalledWith(laMetricDeviceInfo.url, {
-			body: null,
-			headers: { Authorization: 'Basic ZGV2OjQ1Ng==' },
-			method: 'GET',
-		});
-		expect(fetchMock).toBeCalledWith(laMetricDeviceInfo2.url, {
-			body: null,
-			headers: { Authorization: 'Basic ZGV2OjQ1Ng==' },
-			method: 'GET',
-		});
-		fetchMock.mockReset();
-	});
-
-	it('should map pi hole data', () => {
-		// run
-		let body = mapToBody(
-			piHoleSummaryData.body,
-			piHoleTopItemsData.body,
-			piHoleRecentBlockedData.body,
-		);
-
-		// validation
-		expect(body.blockListSize).toBe(
-			piHoleSummaryData.body.domains_being_blocked,
-		);
-		expect(body.dnsQueriesToday).toBe(
-			piHoleSummaryData.body.dns_queries_today,
-		);
-		expect(body.adsBlockedToday).toBe(
-			piHoleSummaryData.body.ads_blocked_today,
-		);
-		expect(body.totalClientsSeen).toBe(
-			piHoleSummaryData.body.clients_ever_seen,
-		);
-		expect(body.totalDNSQueries).toBe(
-			piHoleSummaryData.body.dns_queries_all_types,
-		);
-		expect(body.topQuery).toBe(
-			'data.iot.us-east-1.amazonaws.com (3741 Queries)',
-		);
-		expect(body.topBlockedQuery).toBe(
-			'web.vortex.data.microsoft.com (928 Queries)',
-		);
-		expect(body.lastBlockedQuery).toBe(piHoleRecentBlockedData.body);
-	});
-
-	it('should map key value pair', () => {
-		// run & validation
-		expect(
-			mapKeyValuePairToString(piHoleTopItemsData.body.top_queries, 0),
-		).toBe('data.iot.us-east-1.amazonaws.com (3741 Queries)');
-		expect(
-			mapKeyValuePairToString(piHoleTopItemsData.body.top_queries, 1),
-		).toBe('lametric.iderp.io (2854 Queries)');
-		expect(
-			mapKeyValuePairToString(piHoleTopItemsData.body.top_ads, 0),
-		).toBe('web.vortex.data.microsoft.com (928 Queries)');
-		expect(
-			mapKeyValuePairToString(piHoleTopItemsData.body.top_ads, 1),
-		).toBe('ichnaea.netflix.com (647 Queries)');
-	});
-
-	it('should collect and combine data from pihole', async () => {
-		// init
-		fetchMock
-			.get(piHoleSummaryData.url, {
+	describe('authenticatedGet', () => {
+		it('logs in first if no session is cached yet, then requests with the sid header', async () => {
+			// init
+			fetchMock.get(piHoleSummaryData.url, {
 				status: 200,
 				body: piHoleSummaryData.body,
-			})
-			.get(piHoleTopItemsData.url, {
-				status: 200,
-				body: piHoleTopItemsData.body,
-			})
-			.get(piHoleRecentBlockedData.url, {
-				status: 200,
-				body: piHoleRecentBlockedData.body,
 			});
 
-		// run & validation
-		await expect(getPiholeData()).resolves.toEqual(mockPiHoleCombinedData);
-		expect(fetchMock).toBeCalledTimes(3);
-		expect(fetchMock).toBeCalledWith(piHoleSummaryData.url, {
-			body: null,
-			headers: {},
-			method: 'GET',
+			// run & validation
+			await expect(authenticatedGet('/stats/summary')).resolves.toEqual(
+				piHoleSummaryData.body,
+			);
+			expect(fetchMock).toHaveLastFetched(piHoleSummaryData.url, {
+				headers: { sid: authOkay.body.session.sid },
+			});
 		});
-		expect(fetchMock).toBeCalledWith(piHoleTopItemsData.url, {
-			body: null,
-			headers: {},
-			method: 'GET',
-		});
-		expect(fetchMock).toBeCalledWith(piHoleRecentBlockedData.url, {
-			body: null,
-			headers: {},
-			method: 'GET',
-		});
-		fetchMock.mockReset();
-	});
 
-	it('should reject promise, when error occurs on sending update to lametric', async () => {
-		// init
-		fetchMock
-			.get(laMetricDeviceInfo.url, {
-				body: laMetricDeviceInfo.body,
-			})
-			.get(laMetricDeviceInfo2.url, {
-				status: 200,
-				body: laMetricDeviceInfo2.body,
-			})
-			.get(piHoleSummaryData.url, {
-				status: 200,
-				body: piHoleSummaryData.body,
-			})
-			.get(piHoleTopItemsData.url, {
-				status: 200,
-				body: piHoleTopItemsData.body,
-			})
-			.get(piHoleRecentBlockedData.url, {
-				status: 200,
-				body: piHoleRecentBlockedData.body,
-			})
-			.post(urlLametricUpdate, {
-				throws: { message: 'error on sending update to lametric' },
+		it('re-logs in and retries once when the cached session has expired', async () => {
+			// init
+			index.__set__('cachedSid', 'stale-sid');
+			fetchMock
+				.getOnce(
+					piHoleSummaryData.url,
+					{ status: 401, body: unauthorizedError.body },
+					{ name: 'expired-session' },
+				)
+				.getOnce(
+					piHoleSummaryData.url,
+					{ status: 200, body: piHoleSummaryData.body },
+					{ name: 'retry-after-relogin' },
+				);
+
+			// run & validation
+			await expect(authenticatedGet('/stats/summary')).resolves.toEqual(
+				piHoleSummaryData.body,
+			);
+			expect(fetchMock).toHaveFetchedTimes(2, piHoleSummaryData.url);
+		});
+
+		it('rejects with the HTTP status and body on any other error', async () => {
+			// init
+			fetchMock.get(piHoleSummaryData.url, {
+				status: 500,
+				body: { error: 'internal server error' },
 			});
 
-		// run & validation
-		// TODO switch to fetchAndProcess
-		// await expect(updateLaMetric()).rejects.toEqual(
-		// 	'error on sending update to lametric',
-		// );
-		await expect(updateLaMetric()).rejects.toEqual({
-			message: 'error on sending update to lametric',
+			// run & validation
+			await expect(authenticatedGet('/stats/summary')).rejects.toThrow(
+				'HTTP 500',
+			);
 		});
-		expect(fetchMock).toBeCalledTimes(6);
-		expect(fetchMock).toBeCalledWith(laMetricDeviceInfo.url, {
-			body: null,
-			headers: { Authorization: 'Basic ZGV2OjQ1Ng==' },
-			method: 'GET',
-		});
-		expect(fetchMock).toBeCalledWith(laMetricDeviceInfo2.url, {
-			body: null,
-			headers: { Authorization: 'Basic ZGV2OjQ1Ng==' },
-			method: 'GET',
-		});
-		expect(fetchMock).toBeCalledWith(piHoleSummaryData.url, {
-			body: null,
-			headers: {},
-			method: 'GET',
-		});
-		expect(fetchMock).toBeCalledWith(piHoleTopItemsData.url, {
-			body: null,
-			headers: {},
-			method: 'GET',
-		});
-		expect(fetchMock).toBeCalledWith(piHoleRecentBlockedData.url, {
-			body: null,
-			headers: {},
-			method: 'GET',
-		});
-		fetchMock.mockReset();
 	});
 
-	it('should resolve promise, when sending update to lametric is successful', async () => {
-		// init
-		fetchMock
-			.get(laMetricDeviceInfo.url, {
-				status: 200,
-				body: laMetricDeviceInfo.body,
-			})
-			.get(laMetricDeviceInfo2.url, {
-				status: 200,
-				body: laMetricDeviceInfo2.body,
-			})
-			.get(piHoleSummaryData.url, {
-				status: 200,
-				body: piHoleSummaryData.body,
-			})
-			.get(piHoleTopItemsData.url, {
-				status: 200,
-				body: piHoleTopItemsData.body,
-			})
-			.get(piHoleRecentBlockedData.url, {
-				status: 200,
-				body: piHoleRecentBlockedData.body,
-			})
-			.post(urlLametricUpdate, {
-				// post request to lametric.iderp.io
-				status: 200,
-				body: mockPiHoleCombinedData,
+	describe('collectPiholeStats', () => {
+		it('collects and combines the four Pi-hole stats calls', async () => {
+			// init
+			mockAllStatsEndpoints();
+
+			// run & validation
+			await expect(collectPiholeStats()).resolves.toEqual(
+				mockPiHoleCombinedStats,
+			);
+		});
+
+		it('falls back to placeholder text when no domain data exists yet', async () => {
+			// init
+			fetchMock
+				.get(piHoleSummaryData.url, {
+					status: 200,
+					body: piHoleSummaryData.body,
+				})
+				.get(piHoleTopQueriesEmpty.url, {
+					status: 200,
+					body: piHoleTopQueriesEmpty.body,
+				})
+				.get(piHoleTopBlockedData.url, {
+					status: 200,
+					body: piHoleTopQueriesEmpty.body,
+				})
+				.get(piHoleRecentBlockedEmpty.url, {
+					status: 200,
+					body: piHoleRecentBlockedEmpty.body,
+				});
+
+			// run & validation
+			const stats = await collectPiholeStats();
+			expect(stats.topQuery).toBe('Noch keine Anfragen');
+			expect(stats.topBlockedQuery).toBe('Noch nichts geblockt');
+			expect(stats.lastBlockedQuery).toBe('Noch nichts geblockt');
+		});
+	});
+
+	describe('mapStatsToFrames', () => {
+		it('maps combined stats to LaMetric frames', () => {
+			// run & validation
+			expect(mapStatsToFrames(mockPiHoleCombinedStats)).toEqual(
+				mockLametricFrames,
+			);
+		});
+
+		it('includes an icon for a frame when one is configured', () => {
+			// init
+			mockConfig.Icons = { adsBlockedToday: '1957' };
+
+			// run & validation
+			const frames = mapStatsToFrames(mockPiHoleCombinedStats);
+			expect(frames.frames[0]).toEqual({
+				text: '7558 geblockt heute',
+				icon: '1957',
 			});
-
-		// run & validation
-		await expect(updateLaMetric()).resolves.toBeTruthy();
-		expect(fetchMock).toBeCalledTimes(6);
-		expect(fetchMock).toBeCalledWith(piHoleSummaryData.url, {
-			body: null,
-			headers: {},
-			method: 'GET',
 		});
-		expect(fetchMock).toBeCalledWith(piHoleTopItemsData.url, {
-			body: null,
-			headers: {},
-			method: 'GET',
-		});
-		expect(fetchMock).toBeCalledWith(piHoleRecentBlockedData.url, {
-			body: null,
-			headers: {},
-			method: 'GET',
-		});
-		expect(fetchMock).toBeCalledWith(laMetricDeviceInfo.url, {
-			headers: { Authorization: 'Basic ZGV2OjQ1Ng==' },
-			body: null,
-			method: 'GET',
-		});
-		expect(fetchMock).toBeCalledWith(laMetricDeviceInfo2.url, {
-			headers: { Authorization: 'Basic ZGV2OjQ1Ng==' },
-			body: null,
-			method: 'GET',
-		});
-		expect(fetchMock).toBeCalledWith(urlLametricUpdate, {
-			method: 'POST',
-			body: mockPiHoleCombinedData,
-		});
-		fetchMock.mockReset();
 	});
 
-	it('should run into an error integrativly', async () => {
-		// init
-		const spyConsole = jest.spyOn(console, 'log').mockImplementation();
-		fetchMock.get(piHoleError.url, {
-			status: 200,
-			body: piHoleError.body,
+	describe('getFrames', () => {
+		it('fetches fresh frames when nothing is cached yet', async () => {
+			// init
+			mockAllStatsEndpoints();
+
+			// run & validation
+			await expect(getFrames()).resolves.toEqual(mockLametricFrames);
 		});
 
-		// run
-		main();
-		await new Promise(setImmediate);
+		it('serves the cached frames without re-fetching within updateInterval', async () => {
+			// init
+			mockAllStatsEndpoints();
+			await getFrames();
+			fetchMock.mockClear();
 
-		// validation
-		expect(spyConsole).toBeCalledWith(
-			'Pi-Hole Auth Invalid! Make sure the supplied key is correct.',
-		);
-		fetchMock.mockReset();
-	});
+			// run & validation
+			await expect(getFrames()).resolves.toEqual(mockLametricFrames);
+			expect(fetchMock).toHaveFetchedTimes(0);
+		});
 
-	it('should work integrativly with mocks', async () => {
-		// init
-		console.log = jest.fn();
-
-		fetchMock
-			// init pi hole
-			.get(piHoleLogin.url, { status: 200, body: piHoleLogin.body })
-			// init lametric (reused for update)
-			.get(laMetricDeviceInfo.url, {
-				status: 200,
-				body: laMetricDeviceInfo.body,
-			})
-			.get(laMetricDeviceInfo2.url, {
-				status: 200,
-				body: laMetricDeviceInfo2.body,
-			})
-			// collect data
-			.get(piHoleSummaryData.url, {
-				status: 200,
-				body: piHoleSummaryData.body,
-			})
-			.get(piHoleTopItemsData.url, {
-				status: 200,
-				body: piHoleTopItemsData.body,
-			})
-			.get(piHoleRecentBlockedData.url, {
-				status: 200,
-				body: piHoleRecentBlockedData.body,
-			})
-			// post request to lametric.iderp.io
-			.post(urlLametricUpdate, {
-				status: 200,
-				body: laMetricDeviceInfo2.body,
+		it('serves stale cached frames when a refresh fails', async () => {
+			// init
+			index.__set__('cache', {
+				expiresAt: 0, // already expired -> forces a refresh attempt
+				frames: mockLametricFrames,
 			});
+			mockAllStatsEndpointsFailing();
 
-		// run & validation
-		main();
-		await new Promise(setImmediate);
+			// run & validation
+			await expect(getFrames()).resolves.toEqual(mockLametricFrames);
+		});
 
-		// validation
-		// piHoleLogin.url, laMetricDeviceInfo.url (2x), laMetricDeviceInfo2.url (2x), piHoleSummaryData.url, piHoleTopItemsData.url, piHoleRecentBlockedData.url, lametric.iderp.io
-		expect(fetchMock).toBeCalledTimes(9);
-		fetchMock.mockReset();
+		it('rejects when a refresh fails and nothing is cached yet', async () => {
+			// init
+			mockAllStatsEndpointsFailing();
+
+			// run & validation
+			await expect(getFrames()).rejects.toThrow();
+		});
 	});
-});
 
-describe('testing pi hole for lametric (without debug mode)', () => {
-	const config = require(`./config.json`);
+	describe('handleRequest', () => {
+		const fakeResponse = () => ({
+			writeHead: jest.fn().mockReturnThis(),
+			end: jest.fn(),
+		});
 
-	it("shouldn't log, when debug mode is disabled", () => {
-		// init
-		const spyConsole = jest.fn();
-		console.log = spyConsole;
-		config.debugMode = false;
+		it('serves the frames JSON on GET /lametric', async () => {
+			// init
+			mockAllStatsEndpoints();
+			const res = fakeResponse();
 
-		// run
-		logIfDebug('test msg');
+			// run
+			handleRequest({ method: 'GET', url: '/lametric' }, res);
+			await new Promise(setImmediate);
 
-		// validation
-		expect(spyConsole).toHaveBeenCalledTimes(0);
+			// validation
+			expect(res.writeHead).toHaveBeenCalledWith(200, {
+				'Content-Type': 'application/json',
+			});
+			expect(res.end).toHaveBeenCalledWith(
+				JSON.stringify(mockLametricFrames),
+			);
+		});
+
+		it('returns 404 for any other path', () => {
+			// init
+			const res = fakeResponse();
+
+			// run
+			handleRequest({ method: 'GET', url: '/anything-else' }, res);
+
+			// validation
+			expect(res.writeHead).toHaveBeenCalledWith(404);
+			expect(res.end).toHaveBeenCalledTimes(1);
+		});
+
+		it('returns 502 with an error frame when Pi-hole is unreachable', async () => {
+			// init
+			mockAllStatsEndpointsFailing();
+			const res = fakeResponse();
+
+			// run
+			handleRequest({ method: 'GET', url: '/lametric' }, res);
+			await new Promise(setImmediate);
+
+			// validation
+			expect(res.writeHead).toHaveBeenCalledWith(502, {
+				'Content-Type': 'application/json',
+			});
+		});
+	});
+
+	describe('startServer', () => {
+		it('starts an HTTP server listening on the configured port', () => {
+			// run
+			const server = startServer();
+
+			// validation
+			expect(server.listening).toBe(true);
+			expect(server.address().port).toBe(mockConfig.Server.Port);
+			server.close();
+		});
 	});
 });

@@ -1,9 +1,6 @@
-const config = require(`./config.json`);
+const http = require('http');
+const config = require('./config.json');
 const fetch = require('node-fetch');
-const spinner = require('ora')();
-const laMetricAuthKey = `Basic ${Buffer.from(
-	'dev:' + config.LaMetric.AuthKey,
-).toString('base64')}`;
 
 /**
  * Logs the given msg if debug mode is enabled.
@@ -15,320 +12,243 @@ const logIfDebug = (msg) => {
 	}
 };
 
-/**
- * Fetches the given {@param url} with optional {@param payload}. (optionally with authorization header using the given
- * {@param auth} value). The received response is processed with the given {@param callbackFunction}.
- *
- * @param url the url to call.
- * @param payload optional payload for the request.
- * @param auth optional authorization header for the request.
- * @param callbackFunction the callback function to be called to process the response received for the request.
+// Session ID (SID) for the Pi-hole v6 REST API. Cached at module scope and
+// refreshed transparently whenever a request comes back 401 (see
+// authenticatedGet) - Pi-hole sessions expire after a period of inactivity.
+let cachedSid = null;
 
- * @returns {Promise<*>} of the called fetch.
+// Last successfully fetched LaMetric frames, served (a) while still within
+// config.updateInterval, and (b) as a stale-but-better-than-nothing fallback
+// if a refresh fails - the poll endpoint should stay up even if Pi-hole is
+// briefly unreachable.
+let cache = { expiresAt: 0, frames: null };
+
+/**
+ * Logs in to the Pi-hole v6 API with the configured password and caches the
+ * resulting session ID for subsequent requests.
+ * @returns {Promise<string>} the session ID.
  */
-const fetchAndProcess = (url, payload, auth, callbackFunction) => {
-	return fetch(url, {
-		method: payload ? 'POST' : 'GET',
-		body: payload ? payload : null,
-		headers: auth ? { Authorization: auth } : {},
+const login = () => {
+	return fetch(`http://${config.PiHole.IP}/api/auth`, {
+		method: 'POST',
+		headers: { 'Content-Type': 'application/json' },
+		body: JSON.stringify({ password: config.PiHole.Password }),
 	})
-		.then((res) =>
-			url.includes('recentBlocked') ? res.text() : res.json(),
-		)
-		.then((res) => callbackFunction(res))
-		.then(({ msg, res }) => {
-			if (!msg.includes('ignore')) {
-				spinner.succeed(msg);
+		.then((res) => res.json())
+		.then((body) => {
+			if (!body.session || !body.session.valid) {
+				const reason = body.session
+					? body.session.message
+					: 'no session in response';
+				throw new Error(`Pi-Hole login failed: ${reason}`);
 			}
-			return Promise.resolve(res);
-		})
-		.catch((errorMsg) => {
-			console.log(errorMsg);
-			spinner.fail(errorMsg.message);
-			return Promise.reject(errorMsg.message);
+			cachedSid = body.session.sid;
+			return cachedSid;
 		});
 };
 
 /**
- * Checks if connection to pi hole can be established. In case everything works fine a resolved promise is returned, otherwise a rejected promise.
+ * Resolves to the cached session ID, logging in first if none exists yet.
+ * @returns {Promise<string>} the session ID.
  */
-const piHoleTest = () => {
-	logIfDebug('Debug Mode Enabled');
-	console.log(`Starting Pi-Hole for LaMetric ${config.version}...`);
-	spinner.succeed(`Testing Pi-Hole Connection @ ${config.PiHole.IP}...`);
-
-	return fetchAndProcess(
-		`http://${config.PiHole.IP}/admin/api.php?getQueryTypes&auth=${config.PiHole.AuthKey}`,
-		null,
-		null,
-		handlePiholeLoginResponse,
-	);
-};
+const ensureLoggedIn = () => (cachedSid ? Promise.resolve(cachedSid) : login());
 
 /**
- * Handles the given {@param response} from Pihole login.
- * @param response the response to handle.
- * @returns {Promise<{msg: string, res: ({querytypes}|*)}>} Resolves the promise in case of a valid response, otherwise an error is thrown.
+ * GETs the given Pi-hole v6 API path (e.g. "/stats/summary"), authenticating
+ * with the cached session ID. Transparently re-logs in and retries once if
+ * the session has expired (HTTP 401). Note that if multiple requests hit an
+ * expired session concurrently, each retries independently - acceptable for
+ * this tool's request volume (a handful of calls per poll), not worth the
+ * extra complexity of deduplicating in-flight logins.
+ * @param path the API path including query string, starting with "/".
+ * @returns {Promise<*>} the parsed JSON response body.
  */
-const handlePiholeLoginResponse = (response) => {
-	spinner.succeed(
-		`Pi-Hole Connection @ ${config.PiHole.IP} Successful! Testing Pi-Hole Auth...`,
-	);
-	spinner.start();
-	if (response.querytypes == null) {
-		throw new Error(
-			'Pi-Hole Auth Invalid! Make sure the supplied key is correct.',
+const authenticatedGet = (path) => {
+	const request = (sid) =>
+		fetch(`http://${config.PiHole.IP}/api${path}`, {
+			headers: { sid },
+		});
+
+	return ensureLoggedIn()
+		.then(request)
+		.then((res) => (res.status === 401 ? login().then(request) : res))
+		.then((res) =>
+			res.json().then((body) => {
+				if (!res.ok) {
+					throw new Error(
+						`Pi-Hole request to ${path} failed with HTTP ${
+							res.status
+						}: ${JSON.stringify(body)}`,
+					);
+				}
+				return body;
+			}),
 		);
-	}
-
-	return Promise.resolve({ msg: 'Pi-Hole Auth Valid!', res: response });
 };
 
 /**
- * Checks if connection to lametric can be established. In case everything works fine a resolved promise is returned, otherwise a rejected promise.
+ * Fetches Pi-hole's overview stats (query counts, gravity list size, clients).
  */
-const laMetricTest = () => {
-	spinner.succeed(
-		`Testing Connection to LaMetric @ ${config.LaMetric.IP}...`,
+const getSummary = () => authenticatedGet('/stats/summary');
+
+/**
+ * Fetches the single most-requested domain, optionally restricted to blocked
+ * queries. Resolves to null if Pi-hole has no matching data yet.
+ * @param blocked true for the top blocked domain, false for the top permitted domain.
+ */
+const getTopDomain = (blocked) =>
+	authenticatedGet(`/stats/top_domains?blocked=${blocked}&count=1`).then(
+		(body) => body.domains[0] || null,
 	);
-	spinner.start();
 
-	const lametricCalls = [
-		fetchAndProcess(
-			`http://${config.LaMetric.IP}:8080/api/v2/device/apps/com.lametric.58091f88c1c019c8266ccb2ea82e311d`,
-			null,
-			laMetricAuthKey,
-			handleLametricLoginResponse,
-		),
-		fetchAndProcess(
-			`http://${config.LaMetric.IP}:8080/api/v2/device`,
-			null,
-			laMetricAuthKey,
-			handleLametricDataResponse,
-		),
-	];
+/**
+ * Fetches the most recently blocked domain. Resolves to null if nothing has
+ * been blocked yet.
+ */
+const getRecentBlocked = () =>
+	authenticatedGet('/stats/recent_blocked?count=1').then(
+		(body) => body.blocked[0] || null,
+	);
 
-	return Promise.all(lametricCalls).then(([lametricLogin, lametricData]) => {
-		spinner.succeed(
-			`Connected to LaMetric @ ${config.LaMetric.IP} running OS v${lametricLogin.os_version} & Pi-Hole Status v${lametricLogin.version}! (${lametricData.serial_number})`,
-		);
-		return Promise.resolve();
-	});
+/**
+ * Formats a top-domain entry (as returned by getTopDomain) as
+ * "<domain> (<n> Queries)", or a fallback text if no domain data exists yet.
+ */
+const formatTopDomain = (domain, fallback) =>
+	domain ? `${domain.domain} (${domain.count} Queries)` : fallback;
+
+/**
+ * Collects and combines the Pi-hole stats relevant for the LaMetric display.
+ * @returns {Promise<{adsBlockedToday: number, blockListSize: number, dnsQueriesToday: number, lastBlockedQuery: string, topBlockedQuery: string, topQuery: string, totalClientsSeen: number}>}
+ */
+const collectPiholeStats = () => {
+	return ensureLoggedIn()
+		.then(() =>
+			Promise.all([
+				getSummary(),
+				getTopDomain(false),
+				getTopDomain(true),
+				getRecentBlocked(),
+			]),
+		)
+		.then(([summary, topQuery, topBlockedQuery, lastBlockedQuery]) => ({
+			blockListSize: summary.gravity.domains_being_blocked,
+			dnsQueriesToday: summary.queries.total,
+			adsBlockedToday: summary.queries.blocked,
+			totalClientsSeen: summary.clients.total,
+			topQuery: formatTopDomain(topQuery, 'Noch keine Anfragen'),
+			topBlockedQuery: formatTopDomain(
+				topBlockedQuery,
+				'Noch nichts geblockt',
+			),
+			lastBlockedQuery: lastBlockedQuery || 'Noch nichts geblockt',
+		}));
 };
 
 /**
- * Handles the given {@param response} from Lametric login.
- *
- * @param response the response to handle.
- * @returns {Promise<{msg: string, res}>} Resolves the promise in case of a valid response, otherwise an error is thrown.
+ * Maps combined Pi-hole stats to the frame format expected by LaMetric's
+ * "My Data DIY" app. Icon IDs are optional and taken from config.Icons (see
+ * example.config.json) - pick your own from https://developer.lametric.com/icons.
+ * @param stats the combined stats, as returned by collectPiholeStats.
+ * @returns {{frames: [{text: string}]}}
  */
-const handleLametricLoginResponse = (response) => {
-	if (isUnauthorized(response)) {
-		throw new Error('Connection to Lametric is unauthorized');
-	}
-	return Promise.resolve({
-		msg: 'ignore',
-		res: response,
-	});
-};
+const mapStatsToFrames = (stats) => {
+	const icons = config.Icons || {};
+	const frame = (key, text) =>
+		icons[key] ? { text, icon: icons[key] } : { text };
 
-/**
- * Handles the given {@param response} from Lametric data request.
- *
- * @param response the response to handle.
- * @returns {Promise<{msg: string, res: ({name}|*)}>} Resolves the promise in case of a valid response, otherwise an error is thrown.
- */
-const handleLametricDataResponse = (response) => {
-	if (response.name) {
-		return Promise.resolve({ msg: 'ignore', res: response });
-	}
-
-	throw new Error('Lametric data is corrupt!');
-};
-
-const mapToBody = (
-	piHoleSummaryData,
-	piHoleTopItemsData,
-	piHoleRecentBlockedData,
-) => {
 	return {
-		blockListSize: piHoleSummaryData.domains_being_blocked,
-		dnsQueriesToday: piHoleSummaryData.dns_queries_today,
-		adsBlockedToday: piHoleSummaryData.ads_blocked_today,
-		totalClientsSeen: piHoleSummaryData.clients_ever_seen,
-		totalDNSQueries: piHoleSummaryData.dns_queries_all_types,
-		topQuery: mapKeyValuePairToString(piHoleTopItemsData.top_queries, 0),
-		topBlockedQuery: mapKeyValuePairToString(piHoleTopItemsData.top_ads, 0),
-		lastBlockedQuery: piHoleRecentBlockedData,
+		frames: [
+			frame('adsBlockedToday', `${stats.adsBlockedToday} geblockt heute`),
+			frame('dnsQueriesToday', `${stats.dnsQueriesToday} Anfragen heute`),
+			frame(
+				'blockListSize',
+				`${stats.blockListSize} Domains auf der Blockliste`,
+			),
+			frame('totalClientsSeen', `${stats.totalClientsSeen} Clients`),
+			frame('topBlockedQuery', `Top geblockt: ${stats.topBlockedQuery}`),
+			frame(
+				'lastBlockedQuery',
+				`Zuletzt geblockt: ${stats.lastBlockedQuery}`,
+			),
+		],
 	};
 };
+
 /**
- * Collects data from pi hole, combines it and sends the result to lametric instance.  In case everything works fine a resolved promise is returned, otherwise a rejected promise.
+ * Returns the cached LaMetric frames if still fresh, otherwise fetches fresh
+ * Pi-hole stats. On a fetch error, serves the last known-good frames instead
+ * of failing the poll request outright, if any are cached yet.
+ * @returns {Promise<{frames: [{text: string}]}>}
  */
-const updateLaMetric = () => {
-	spinner.succeed(
-		`Connecting to LaMetric @ ${config.LaMetric.IP}... for sending update`,
-	);
+const getFrames = () => {
+	const now = Date.now();
+	if (cache.frames && now < cache.expiresAt) {
+		return Promise.resolve(cache.frames);
+	}
 
-	const lametricCalls = [
-		fetchAndProcess(
-			`http://${config.LaMetric.IP}:8080/api/v2/device/apps/com.lametric.58091f88c1c019c8266ccb2ea82e311d`,
-			null,
-			laMetricAuthKey,
-			handleLametricLoginResponse,
-		),
-		fetchAndProcess(
-			`http://${config.LaMetric.IP}:8080/api/v2/device`,
-			null,
-			laMetricAuthKey,
-			handleLametricDataResponse,
-		),
-	];
-
-	return Promise.all(lametricCalls)
-		.then(async ([, lametricData]) => {
-			spinner.succeed(
-				`Connected to LaMetric @ ${config.LaMetric.IP} for sending update`,
-			);
-
-			let piholeData = await getPiholeData();
-			spinner.start(
-				`Sending update for "${lametricData.name}" @ ${config.LaMetric.IP} to the server`,
-			);
-
-			// TODO switch to fetchAndProcess
-			// return fetchAndProcess(
-			// 	`https://lametric.glitch.me/pihole/${lametricData.id}`,
-			// 	piholeData,
-			// 	null,
-			// 	(res) => handleLametricUpdateResponse(res, piholeData),
-			// );
-			return fetch(
-				`https://lametric.glitch.me/pihole/${lametricData.id}`,
-				{
-					method: 'POST',
-					body: piholeData,
-				},
-			)
-				.then((res) => handleLametricUpdateResponse(res, piholeData))
-				.catch((err) => {
-					spinner.fail(
-						`Update failed to send for LaMetric @ ${config.LaMetric.IP}. LaMetric does not seem to linked to this IP.`,
-					);
-					return Promise.reject(err);
-				});
+	return collectPiholeStats()
+		.then(mapStatsToFrames)
+		.then((frames) => {
+			cache = { expiresAt: now + config.updateInterval * 1000, frames };
+			return frames;
 		})
 		.catch((err) => {
-			return Promise.reject(err);
+			logIfDebug(err);
+			if (cache.frames) {
+				return cache.frames;
+			}
+			throw err;
 		});
 };
 
-/**
- * Handles the given {@param response} from Lametric update request.
- *
- * @param response the response to handle.
- * @param payload the sent payload.
- * @returns {Promise<{msg: string, res}>} Resolves the promise in case of a valid response, otherwise an error is thrown.
- */
-const handleLametricUpdateResponse = (response, payload) => {
-	// TODO payload needed?
-	//console.log('\n received response: ' + JSON.stringify(response, null, 2));
-	spinner.succeed(
-		`Sent data (${JSON.stringify(payload, null, 2)}) to lametric server`,
-	);
-	return Promise.resolve({ msg: 'ignore', res: response });
-};
+// Served when Pi-hole is unreachable and there is no cached frame yet to fall
+// back to (e.g. right after startup).
+const ERROR_FRAMES = { frames: [{ text: 'Pi-hole nicht erreichbar' }] };
 
 /**
- * Collects and combines relevant data from pihole.
- * @returns {Promise<{adsBlockedToday: *, totalClientsSeen: *, totalDNSQueries: *, topQuery: string, topBlockedQuery: string, dnsQueriesToday: *, lastBlockedQuery: *, blockListSize: *}>}
+ * Handles a single incoming HTTP request. Only GET /lametric is served -
+ * that's the one poll URL My Data DIY needs; everything else gets 404.
  */
-const getPiholeData = () => {
-	const piHoleCalls = [
-		fetchAndProcess(
-			`http://${config.PiHole.IP}/admin/api.php?summary&auth=${config.PiHole.AuthKey}`,
-			null,
-			null,
-			handlePiholeDataResponse,
-		),
-		fetchAndProcess(
-			`http://${config.PiHole.IP}/admin/api.php?topItems&auth=${config.PiHole.AuthKey}`,
-			null,
-			null,
-			handlePiholeDataResponse,
-		),
-		fetchAndProcess(
-			`http://${config.PiHole.IP}/admin/api.php?recentBlocked&auth=${config.PiHole.AuthKey}`,
-			null,
-			null,
-			handlePiholeDataResponse,
-		),
-	];
+const handleRequest = (req, res) => {
+	if (req.method !== 'GET' || req.url.split('?')[0] !== '/lametric') {
+		res.writeHead(404).end();
+		return;
+	}
 
-	return Promise.all(piHoleCalls).then(
-		([piHoleSummaryData, piHoleTopItemsData, piHoleRecentBlockedData]) =>
-			mapToBody(
-				piHoleSummaryData,
-				piHoleTopItemsData,
-				piHoleRecentBlockedData,
-			),
-	);
-};
-
-/**
- * Handles the given {@param response} from Pihole data request.
- *
- * @param response the response to handle.
- * @returns {{msg: string, res}} Resolves the promise in case of a valid response, otherwise an error is thrown.
- */
-const handlePiholeDataResponse = (response) => {
-	return { msg: 'ignore', res: response };
-};
-
-/**
- * Starts interval timer for calling the given callback function based on the config.
- * @param callback the function to call
- */
-const startUpdateTimer = (callback) => {
-	setInterval(() => {
-		callback();
-	}, config.updateInterval * 1000);
-};
-/**
- * Main program.
- */
-const main = () => {
-	piHoleTest()
-		.then(laMetricTest)
-		// send initial update
-		.then(updateLaMetric)
-		.then(() => startUpdateTimer(updateLaMetric))
+	getFrames()
+		.then((frames) => {
+			res.writeHead(200, { 'Content-Type': 'application/json' });
+			res.end(JSON.stringify(frames));
+		})
 		.catch((err) => {
 			logIfDebug(err);
+			res.writeHead(502, { 'Content-Type': 'application/json' });
+			res.end(JSON.stringify(ERROR_FRAMES));
 		});
 };
 
 /**
- * Checks if we have an unauthorized connection to lametric.
- * @param response the response to check.
+ * Starts the HTTP server that My Data DIY polls for Pi-hole stats.
+ * @returns {http.Server} the started server.
  */
-const isUnauthorized = (response) => {
-	return (
-		response.errors &&
-		response.errors[0].message &&
-		response.errors[0].message === 'Authorization is required'
-	);
+const startServer = () => {
+	const server = http.createServer(handleRequest);
+	server.listen(config.Server.Port, () => {
+		console.log(
+			`Pi-Hole for LaMetric listening on port ${config.Server.Port}...`,
+		);
+	});
+	return server;
 };
 
 /**
- * Maps the given index of the given data map to human-readable string.
- * @param data.
- * @param index the desired index.
+ * Main program: starts the poll server. Pi-hole is only contacted once
+ * My Data DIY actually polls (see getFrames caching).
  */
-const mapKeyValuePairToString = (data, index) => {
-	let keys = Object.keys(data);
-	let values = Object.values(data);
-	return `${keys[index].toString()} (${values[index].toString()} Queries)`;
+const main = () => {
+	logIfDebug('Debug Mode Enabled');
+	startServer();
 };
 
 // call main program directly
@@ -336,7 +256,10 @@ const mapKeyValuePairToString = (data, index) => {
 
 module.exports = {
 	main,
-	spinner,
-	fetchAndProcess,
-	getPiholeData,
+	startServer,
+	handleRequest,
+	login,
+	collectPiholeStats,
+	mapStatsToFrames,
+	getFrames,
 };

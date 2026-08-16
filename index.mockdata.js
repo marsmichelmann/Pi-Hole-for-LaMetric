@@ -1,276 +1,134 @@
 const mockConfig = {
 	debugMode: true,
-	PiHole: { IP: '1.1.1.1', AuthKey: '123' },
-	LaMetric: { IP: '2.2.2.2', AuthKey: '456' },
+	PiHole: { IP: '1.1.1.1', Password: 'testpw' },
+	Server: { Port: 3031 },
+	Icons: {},
 	updateInterval: 60,
 };
 
-const piHoleSummaryData = {
-	url: 'http://1.1.1.1/admin/api.php?summary&auth=123',
+const authOkay = {
+	url: 'http://1.1.1.1/api/auth',
 	body: {
-		domains_being_blocked: '1,399,949',
-		dns_queries_today: '47,730',
-		ads_blocked_today: '7,558',
-		ads_percentage_today: '15.8',
-		unique_domains: '2,720',
-		queries_forwarded: '22,557',
-		queries_cached: '16,896',
-		clients_ever_seen: '32',
-		unique_clients: '30',
-		dns_queries_all_types: '47,730',
-		reply_NODATA: '1,556',
-		reply_NXDOMAIN: '444',
-		reply_CNAME: '3,115',
-		reply_IP: '8,212',
-		privacy_level: '0',
-		status: 'enabled',
-		gravity_last_updated: {
-			file_exists: true,
-			absolute: 1609640984,
-			relative: {
-				days: 4,
-				hours: 7,
-				minutes: 11,
-			},
+		session: {
+			valid: true,
+			totp: false,
+			sid: 'test-sid-123',
+			csrf: 'test-csrf-123',
+			validity: 300,
+			message: 'correct password',
 		},
+		took: 0.003,
 	},
 };
 
-const piHoleTopItemsData = {
-	url: 'http://1.1.1.1/admin/api.php?topItems&auth=123',
+const authInvalidPassword = {
+	url: 'http://1.1.1.1/api/auth',
 	body: {
-		top_queries: {
-			'data.iot.us-east-1.amazonaws.com': 3741,
-			'lametric.iderp.io': 2854,
-			'p.ier.re': 2826,
-			'muggli.one': 2532,
-			'spectrum.s3.amazonaws.com': 1483,
-			's3.eu-central-1.wasabisys.com': 972,
-			'diagnostics.meethue.com': 869,
-			'wpad.fritz.box': 784,
-			'pool.ntp.org': 664,
-			'epdg.epc.mnc002.mcc262.pub.3gppnetwork.org': 580,
+		session: {
+			valid: false,
+			totp: false,
+			sid: null,
+			csrf: null,
+			validity: -1,
+			message: 'password incorrect',
 		},
-		top_ads: {
-			'web.vortex.data.microsoft.com': 928,
-			'ichnaea.netflix.com': 647,
-			'analytics.ff.avast.com': 635,
-			'mobile.pipe.aria.microsoft.com': 617,
-			'customerevents.netflix.com': 400,
-			'app-measurement.com': 238,
-			'www.google-analytics.com': 193,
-			'www.googletagmanager.com': 165,
-			'activity.windows.com': 162,
-			'www.googleadservices.com': 143,
-		},
+		took: 0.003,
 	},
+};
+
+// shape of a 401 response from any authenticated endpoint OTHER than
+// POST /api/auth itself (which has its own body shape, see authInvalidPassword)
+const unauthorizedError = {
+	body: {
+		error: { key: 'unauthorized', message: 'Unauthorized', hint: null },
+		took: 0.001,
+	},
+};
+
+const piHoleSummaryData = {
+	url: 'http://1.1.1.1/api/stats/summary',
+	body: {
+		queries: {
+			total: 47730,
+			blocked: 7558,
+			percent_blocked: 15.8,
+			unique_domains: 2720,
+			forwarded: 22557,
+			cached: 16896,
+		},
+		clients: { active: 30, total: 32 },
+		gravity: { domains_being_blocked: 1399949, last_update: 1609640984 },
+		took: 0.01,
+	},
+};
+
+const piHoleTopQueriesData = {
+	url: 'http://1.1.1.1/api/stats/top_domains?blocked=false&count=1',
+	body: {
+		domains: [{ domain: 'data.iot.us-east-1.amazonaws.com', count: 3741 }],
+		total_queries: 47730,
+		blocked_queries: 7558,
+		took: 0.01,
+	},
+};
+
+const piHoleTopBlockedData = {
+	url: 'http://1.1.1.1/api/stats/top_domains?blocked=true&count=1',
+	body: {
+		domains: [{ domain: 'web.vortex.data.microsoft.com', count: 928 }],
+		total_queries: 47730,
+		blocked_queries: 7558,
+		took: 0.01,
+	},
+};
+
+const piHoleTopQueriesEmpty = {
+	url: 'http://1.1.1.1/api/stats/top_domains?blocked=false&count=1',
+	body: { domains: [], total_queries: 0, blocked_queries: 0, took: 0.01 },
 };
 
 const piHoleRecentBlockedData = {
-	url: 'http://1.1.1.1/admin/api.php?recentBlocked&auth=123',
-	body: 'analytics.ff.avast.com',
+	url: 'http://1.1.1.1/api/stats/recent_blocked?count=1',
+	body: { blocked: ['analytics.ff.avast.com'], took: 0.01 },
 };
 
-const piHoleInvalidData = {
-	url: 'http://1.1.1.1/admin/api.php?getQueryTypes&auth=123',
-	body: {
-		bla: {
-			'A (IPv4)': 57,
-			'AAAA (IPv6)': 35.62,
-			ANY: 0,
-			SRV: 0.04,
-			SOA: 0,
-			PTR: 1.01,
-			TXT: 0.03,
-			NAPTR: 0,
-			MX: 0,
-			DS: 0,
-			RRSIG: 0,
-			DNSKEY: 0,
-			OTHER: 6.3,
-		},
-	},
+const piHoleRecentBlockedEmpty = {
+	url: 'http://1.1.1.1/api/stats/recent_blocked?count=1',
+	body: { blocked: [], took: 0.01 },
 };
 
-const piHoleLogin = {
-	url: 'http://1.1.1.1/admin/api.php?getQueryTypes&auth=123',
-	body: {
-		querytypes: {
-			'A (IPv4)': 11111,
-			'AAAA (IPv6)': 38.46,
-			ANY: 0,
-			SRV: 0.03,
-			SOA: 0.01,
-			PTR: 1.07,
-			TXT: 0.03,
-			NAPTR: 0,
-			MX: 0,
-			DS: 0,
-			RRSIG: 0,
-			DNSKEY: 0,
-			OTHER: 5.89,
-		},
-	},
-};
-
-const piHoleError = {
-	url: 'http://1.1.1.1/admin/api.php?getQueryTypes&auth=123',
-	body: {
-		message:
-			'request to http://localhost/admin/api.php?getQueryTypes&auth=7f47df1359d0453d67b647e24e1c88666d3e8ff7ffd9972fc8ae99923e5f7ac5 failed, reason: connect ECONNREFUSED 127.0.0.1:80',
-		type: 'system',
-		errno: 'ECONNREFUSED',
-		code: 'ECONNREFUSED',
-	},
-};
-
-const lametricNotFoundError = {
-	url: 'http://2.2.2.2:8080/api/v2/device/apps/com.lametric.58091f88c1c019c8266ccb2ea82e311d',
-	body: {
-		message:
-			'request to http://127.0.0.1:8080/api/v2/device/apps/com.lametric.58091f88c1c019c8266ccb2ea82e311d failed, reason: connect ECONNREFUSED 127.0.0.1:8080',
-		type: 'system',
-		errno: 'ECONNREFUSED',
-		code: 'ECONNREFUSED',
-	},
-};
-
-const lametricUnauthorized = {
-	url: 'http://2.2.2.2:8080/api/v2/device/apps/com.lametric.58091f88c1c019c8266ccb2ea82e311d',
-	body: {
-		errors: [
-			{
-				message: 'Authorization is required',
-			},
-		],
-	},
-};
-
-const laMetricDeviceInfo = {
-	url: 'http://2.2.2.2:8080/api/v2/device/apps/com.lametric.58091f88c1c019c8266ccb2ea82e311d',
-	body: {
-		package: 'com.lametric.58091f88c1c019c8266ccb2ea82e311d',
-		title: 'Pi-Hole Status',
-		triggers: {},
-		vendor: 'iDerp',
-		version: '5',
-		version_code: '5',
-		widgets: {
-			bf1a5601a1b54f05ae735183b35dc9e8: {
-				index: -1,
-				package: 'com.lametric.58091f88c1c019c8266ccb2ea82e311d',
-			},
-		},
-	},
-};
-
-const laMetricDeviceInfo2 = {
-	url: 'http://2.2.2.2:8080/api/v2/device',
-	body: {
-		audio: {
-			volume: 53,
-			volume_limit: {
-				max: 69,
-				min: 0,
-			},
-			volume_range: {
-				max: 100,
-				min: 0,
-			},
-		},
-		bluetooth: {
-			active: false,
-			address: 'A0:2C:36:83:3A:B1',
-			available: true,
-			discoverable: true,
-			low_energy: {
-				active: true,
-				advertising: true,
-				connectable: true,
-			},
-			name: 'LM8525',
-			pairable: true,
-		},
-		display: {
-			brightness: 75,
-			brightness_limit: {
-				max: 75,
-				min: 2,
-			},
-			brightness_mode: 'auto',
-			brightness_range: {
-				max: 100,
-				min: 0,
-			},
-			height: 8,
-			screensaver: {
-				enabled: true,
-				modes: {
-					time_based: {
-						enabled: false,
-					},
-					when_dark: {
-						enabled: true,
-					},
-				},
-				widget: '08b8eac21074f8f7e5a29f2855ba8060',
-			},
-			type: 'mixed',
-			width: 37,
-		},
-		id: '13233',
-		mode: 'manual',
-		model: 'LM 37X8',
-		name: 'My LaMetric',
-		os_version: '2.1.2',
-		serial_number: 'SA170100852500W00BS9',
-		wifi: {
-			active: true,
-			address: 'A0:2C:36:83:13:A1',
-			available: true,
-			encryption: 'WPA',
-			essid: 'FRITZ!Box7580',
-			ip: '192.168.2.35',
-			mode: 'dhcp',
-			netmask: '255.255.255.0',
-			strength: 98,
-		},
-	},
-};
-
-const laMetricDeviceInfoCorrupt = {
-	bla: '4711',
-};
-
-const urlLametricUpdate = 'https://lametric.glitch.me/pihole/13233';
-
-const mockEmptyResponse = { msg: 'ok', res: {} };
-
-const mockPiHoleCombinedData = {
-	adsBlockedToday: '7,558',
-	blockListSize: '1,399,949',
-	dnsQueriesToday: '47,730',
-	lastBlockedQuery: 'analytics.ff.avast.com',
-	topBlockedQuery: 'web.vortex.data.microsoft.com (928 Queries)',
+const mockPiHoleCombinedStats = {
+	blockListSize: 1399949,
+	dnsQueriesToday: 47730,
+	adsBlockedToday: 7558,
+	totalClientsSeen: 32,
 	topQuery: 'data.iot.us-east-1.amazonaws.com (3741 Queries)',
-	totalClientsSeen: '32',
-	totalDNSQueries: '47,730',
+	topBlockedQuery: 'web.vortex.data.microsoft.com (928 Queries)',
+	lastBlockedQuery: 'analytics.ff.avast.com',
+};
+
+const mockLametricFrames = {
+	frames: [
+		{ text: '7558 geblockt heute' },
+		{ text: '47730 Anfragen heute' },
+		{ text: '1399949 Domains auf der Blockliste' },
+		{ text: '32 Clients' },
+		{ text: 'Top geblockt: web.vortex.data.microsoft.com (928 Queries)' },
+		{ text: 'Zuletzt geblockt: analytics.ff.avast.com' },
+	],
 };
 
 module.exports = {
 	mockConfig,
+	authOkay,
+	authInvalidPassword,
+	unauthorizedError,
 	piHoleSummaryData,
-	piHoleTopItemsData,
+	piHoleTopQueriesData,
+	piHoleTopBlockedData,
+	piHoleTopQueriesEmpty,
 	piHoleRecentBlockedData,
-	piHoleInvalidData,
-	piHoleError,
-	piHoleLogin,
-	laMetricDeviceInfo,
-	laMetricDeviceInfo2,
-	lametricNotFoundError,
-	lametricUnauthorized,
-	laMetricDeviceInfoCorrupt,
-	urlLametricUpdate,
-	mockEmptyResponse,
-	mockPiHoleCombinedData
+	piHoleRecentBlockedEmpty,
+	mockPiHoleCombinedStats,
+	mockLametricFrames,
 };
