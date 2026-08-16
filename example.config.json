@@ -1,14 +1,12 @@
 {
-  "LaMetric": {
-    "IP": "127.0.0.1",
-    "AuthKey": "def456"
-  },
-  "NOTE": "DO NOT CHANGE THE VERSION FIELD",
   "PiHole": {
     "IP": "127.0.0.1",
-    "AuthKey": "abc123"
+    "Password": "changeme"
   },
-  "debugMode": true,
+  "Server": {
+    "Port": 3030
+  },
+  "Icons": {},
   "updateInterval": 60,
-  "version": "v2.0.3-Beta"
+  "debugMode": true
 }

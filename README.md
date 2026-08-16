@@ -1,12 +1,49 @@
 # Pi-Hole Status for LaMetric
 
-For complete instructions and tutorials, check out the [wiki](https://github.com/iDerp/Pi-Hole-for-LaMetric/wiki).
+![Node.js CI](https://github.com/marsmichelmann/Pi-Hole-for-LaMetric/actions/workflows/node.js.yml/badge.svg)
 
+Serves your [Pi-hole](https://pi-hole.net/) v6 stats as a small HTTP endpoint
+that a LaMetric clock polls via the official
+[My Data DIY](https://apps.lametric.com/apps/my_data_diy__with_no-code_possibilities_/8942)
+app - no cloud relay involved, everything stays on your LAN.
+
+```
+LaMetric clock (My Data DIY, polls periodically)
+        │  GET http://<this-host>:<Server.Port>/lametric
+        ▼
+this program (Node.js)
+        │  Pi-hole v6 REST API, session login
+        ▼
+Pi-hole
+```
+
+## Setup
+
+1. Requirements: Node.js ≥ 18, a running Pi-hole (Core v6+), and a LaMetric
+   clock on the same network.
+2. `npm ci`
+3. `cp example.config.json config.json`, then fill in:
+   - `PiHole.IP` - your Pi-hole's address.
+   - `PiHole.Password` - your Pi-hole web UI password (or a dedicated
+     [application password](https://docs.pi-hole.net/api/) - never commit
+     the real value, `config.json` is gitignored).
+   - `Server.Port` - the port this program listens on (default `3030`).
+   - `Icons` (optional) - LaMetric icon IDs per stat, picked from
+     [developer.lametric.com/icons](https://developer.lametric.com/icons).
+4. `npm start`
+5. On your phone, add the **My Data DIY** app to your LaMetric clock and
+   configure its poll URL as `http://<this-host>:<Server.Port>/lametric`.
+
+## Development
+
+```bash
+npm test              # run the test suite
+npm run prettier-check
+```
 
 ## Requirements
-* Node.JS (Minimum version unknown)
-* Internet Connection
-* Git (Recommended, not required)
-* Pi-Hole
-* At least 1 LaMetric
-* Basic knowledge of computers
+
+- Node.js ≥ 18 (tested against 18.x, 20.x, 22.x in CI; this is what the
+  project runs on unattended, e.g. a Raspberry Pi via systemd)
+- Pi-hole Core v6 or later
+- At least one LaMetric clock with the My Data DIY app

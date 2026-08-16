@@ -1,36 +1,49 @@
-# This workflow will do a clean install of node dependencies, build the source code and run tests across different versions of node
+# This workflow does a clean install of node dependencies and runs the test
+# suite across a matrix of Node.js versions.
 # For more information see: https://help.github.com/actions/language-and-framework-guides/using-nodejs-with-github-actions
 
 name: Node.js CI
 
 on:
   push:
-    branches: [ stable ]
+    branches: [stable]
   pull_request:
-    branches: [ stable ]
+    branches: [stable]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
 
     strategy:
       matrix:
-        node-version: [12.x, 14.x, 15.x, 16.x]
-        # See supported Node.js release schedule at https://nodejs.org/en/about/releases/
+        # 18.x is the actual runtime on the Raspberry Pi this project targets
+        # (Raspbian Buster can't be upgraded past it); 20.x/22.x are current
+        # LTS/active releases. See https://nodejs.org/en/about/previous-releases.
+        node-version: [18.x, 20.x, 22.x]
 
     steps:
-    - uses: actions/checkout@v2
-    - name: Use Node.js ${{ matrix.node-version }}
-      uses: actions/setup-node@v1
-      with:
-        node-version: ${{ matrix.node-version }}
-    - name: Copy example.config.json to config.json
-      run: |
-        cp example.config.json config.json
-    - name: npm install and test
-      run: |
-        npm install
-        npm test
-      env:
-        CI: true
+      - uses: actions/checkout@v4
+
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: npm
+
+      - name: Copy example.config.json to config.json
+        run: cp example.config.json config.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Format check
+        run: npx prettier --check *.js
+
+      - name: Test
+        run: npm test
+        env:
+          CI: true

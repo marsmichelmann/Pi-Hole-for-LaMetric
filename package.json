@@ -1,8 +1,12 @@
 {
   "name": "pi-hole-for-lametric",
-  "version": "1.0.0",
-  "description": "",
+  "version": "2.0.0",
+  "description": "Serves Pi-hole v6 stats as a LaMetric \"My Data DIY\" poll endpoint",
   "main": "index.js",
+  "repository": "github:marsmichelmann/Pi-Hole-for-LaMetric",
+  "engines": {
+    "node": ">=18"
+  },
   "scripts": {
     "start": "node -e \"require('./index').main()\"",
     "test": "jest",
@@ -10,10 +14,9 @@
     "prettier-check": "prettier --check *.js"
   },
   "author": "Markus Michel",
-  "license": "ISC",
+  "license": "GPL-3.0-or-later",
   "dependencies": {
-    "node-fetch": "^2.6.7",
-    "ora": "5.4.1"
+    "node-fetch": "^2.6.7"
   },
   "devDependencies": {
     "babel-jest": "27.4.6",
