@@ -251,8 +251,13 @@ const main = () => {
 	startServer();
 };
 
-// call main program directly
-//main();
+// Starts the server when this file is run directly (`node index.js`, as the
+// systemd service does), but not when it's merely require()'d - e.g. by the
+// test suite or by `node -e "require('./index').main()"` (the npm start
+// script), which call main() explicitly instead.
+if (require.main === module) {
+	main();
+}
 
 module.exports = {
 	main,
