@@ -229,7 +229,7 @@ describe('pi-hole for lametric', () => {
 			// run & validation
 			const frames = mapStatsToFrames(mockPiHoleCombinedStats);
 			expect(frames.frames[1]).toEqual({
-				text: '7558 geblockt heute',
+				text: '7558',
 				icon: '1957',
 			});
 		});

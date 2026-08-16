@@ -6,7 +6,15 @@
   "Server": {
     "Port": 3030
   },
-  "Icons": {},
+  "Icons": {
+    "percentBlocked": "i33911",
+    "adsBlockedToday": "i16805",
+    "dnsQueriesToday": "i21867",
+    "blockListSize": "i24083",
+    "totalClientsSeen": "i5337",
+    "topBlockedQuery": "i7621",
+    "lastBlockedQuery": "i16805"
+  },
   "updateInterval": 60,
-  "debugMode": true
+  "debugMode": false
 }

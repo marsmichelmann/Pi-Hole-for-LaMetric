@@ -111,10 +111,10 @@ const mockPiHoleCombinedStats = {
 const mockLametricFrames = {
 	frames: [
 		{ goalData: { start: 0, current: 16, end: 100, unit: '%' } },
-		{ text: '7558 geblockt heute' },
-		{ text: '47730 Anfragen heute' },
-		{ text: '1399949 Domains auf der Blockliste' },
-		{ text: '32 Clients' },
+		{ text: '7558' },
+		{ text: '47730' },
+		{ text: '1399949' },
+		{ text: '32' },
 		{ text: 'Top geblockt: web.vortex.data.microsoft.com (928 Queries)' },
 		{ text: 'Zuletzt geblockt: analytics.ff.avast.com' },
 	],

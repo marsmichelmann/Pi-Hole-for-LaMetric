@@ -159,6 +159,10 @@ const mapStatsToFrames = (stats) => {
 		icons[key] ? { ...frameBody, icon: icons[key] } : frameBody;
 	const textFrame = (key, text) => withIcon(key, { text });
 
+	// Numeric frames deliberately show the bare number: anything longer than
+	// the 37x8 px display scrolls, and the per-frame icon (config.Icons)
+	// already carries the meaning. Only the two domain frames scroll -
+	// domain names don't fit either way, so they keep a short label.
 	return {
 		frames: [
 			withIcon('percentBlocked', {
@@ -169,19 +173,10 @@ const mapStatsToFrames = (stats) => {
 					unit: '%',
 				},
 			}),
-			textFrame(
-				'adsBlockedToday',
-				`${stats.adsBlockedToday} geblockt heute`,
-			),
-			textFrame(
-				'dnsQueriesToday',
-				`${stats.dnsQueriesToday} Anfragen heute`,
-			),
-			textFrame(
-				'blockListSize',
-				`${stats.blockListSize} Domains auf der Blockliste`,
-			),
-			textFrame('totalClientsSeen', `${stats.totalClientsSeen} Clients`),
+			textFrame('adsBlockedToday', `${stats.adsBlockedToday}`),
+			textFrame('dnsQueriesToday', `${stats.dnsQueriesToday}`),
+			textFrame('blockListSize', `${stats.blockListSize}`),
+			textFrame('totalClientsSeen', `${stats.totalClientsSeen}`),
 			textFrame(
 				'topBlockedQuery',
 				`Top geblockt: ${stats.topBlockedQuery}`,
