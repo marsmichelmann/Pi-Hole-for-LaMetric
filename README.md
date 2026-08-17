@@ -61,7 +61,7 @@ npm run prettier-check
 
 ## Requirements
 
-- Node.js ≥ 18 (tested against 18.x, 20.x, 22.x in CI; this is what the
-  project runs on unattended, e.g. a Raspberry Pi via systemd)
+- Node.js 18.x (CI targets this exact version - it's what the project runs
+  on unattended, on a Raspberry Pi via systemd)
 - Pi-hole Core v6 or later
 - At least one LaMetric clock with the My Data DIY app

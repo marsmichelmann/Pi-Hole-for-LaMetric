@@ -1,5 +1,5 @@
-# Clean install, format/lint gates, TypeScript build, and test suite across
-# the supported Node.js versions.
+# Clean install, format/lint gates, TypeScript build, and test suite on the
+# Node.js version this actually runs on.
 
 name: Node.js CI
 
@@ -17,20 +17,16 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
-    strategy:
-      matrix:
-        # 18.x is the actual runtime on the Raspberry Pi this project targets
-        # (Raspbian Buster can't be upgraded past it); 20.x/22.x are current
-        # LTS/active releases. See https://nodejs.org/en/about/previous-releases.
-        node-version: [18.x, 20.x, 22.x]
-
     steps:
       - uses: actions/checkout@v4
 
-      - name: Use Node.js ${{ matrix.node-version }}
+      # 18.x is the actual runtime on the Raspberry Pi this project targets -
+      # Raspbian Buster's libstdc++ can't run anything newer, so that's the
+      # only version worth testing against.
+      - name: Use Node.js 18.x
         uses: actions/setup-node@v4
         with:
-          node-version: ${{ matrix.node-version }}
+          node-version: 18.x
           cache: npm
 
       - name: Install dependencies
