@@ -24,6 +24,9 @@ export const authInvalidPassword = {
 	took: 0.003,
 };
 
+// Malformed/unexpected auth response with no session field at all
+export const authNoSession = {};
+
 // 401 body from any authenticated endpoint other than POST /auth itself
 export const unauthorizedError = {
 	error: { key: 'unauthorized', message: 'Unauthorized', hint: null },
@@ -41,13 +44,6 @@ export const summaryData = {
 	},
 	clients: { active: 30, total: 32 },
 	gravity: { domains_being_blocked: 1399949, last_update: 1609640984 },
-	took: 0.01,
-};
-
-export const topQueriesData = {
-	domains: [{ domain: 'data.iot.us-east-1.amazonaws.com', count: 3741 }],
-	total_queries: 47730,
-	blocked_queries: 7558,
 	took: 0.01,
 };
 
@@ -78,7 +74,6 @@ export const combinedStats: PiholeStats = {
 	adsBlockedToday: 7558,
 	percentBlocked: 16,
 	totalClientsSeen: 32,
-	topQuery: 'data.iot.us-east-1.amazonaws.com (3741 Queries)',
 	topBlockedQuery: 'web.vortex.data.microsoft.com (928 Queries)',
 	lastBlockedQuery: 'analytics.ff.avast.com',
 };

@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { PiholeClient } from './pihole.js';
 import {
 	authInvalidPassword,
+	authNoSession,
 	authOkay,
 	combinedStats,
 	recentBlockedData,
@@ -10,7 +11,6 @@ import {
 	summaryData,
 	topBlockedData,
 	topDomainsEmpty,
-	topQueriesData,
 	unauthorizedError,
 } from './mockdata.js';
 
@@ -33,10 +33,11 @@ const routeFetch = (
 		return Promise.resolve(route[1]());
 	});
 
-const statsRoutes = (): [string, () => Response][] => [
-	['/auth', () => jsonResponse(authOkay)],
-	['/stats/summary', () => jsonResponse(summaryData)],
-	['blocked=false', () => jsonResponse(topQueriesData)],
+const statsRoutes = (
+	overrides: Partial<Record<'auth' | 'summary', () => Response>> = {},
+): [string, () => Response][] => [
+	['/auth', overrides.auth ?? (() => jsonResponse(authOkay))],
+	['/stats/summary', overrides.summary ?? (() => jsonResponse(summaryData))],
 	['blocked=true', () => jsonResponse(topBlockedData)],
 	['recent_blocked', () => jsonResponse(recentBlockedData)],
 ];
@@ -50,7 +51,7 @@ describe('PiholeClient', () => {
 		vi.unstubAllGlobals();
 	});
 
-	it('collects and combines the four stats calls', async () => {
+	it('collects and combines the three stats calls', async () => {
 		const client = new PiholeClient('1.1.1.1', 'testpw');
 
 		await expect(client.collectStats()).resolves.toEqual(combinedStats);
@@ -61,6 +62,18 @@ describe('PiholeClient', () => {
 
 		await client.collectStats();
 		await client.collectStats();
+
+		const authCalls = vi
+			.mocked(fetch)
+			.mock.calls.filter(([url]) => String(url).includes('/auth'));
+		expect(authCalls).toHaveLength(1);
+	});
+
+	it('coalesces concurrent logins into a single request', async () => {
+		const client = new PiholeClient('1.1.1.1', 'testpw');
+
+		// no sid cached yet - both calls race to log in
+		await Promise.all([client.collectStats(), client.collectStats()]);
 
 		const authCalls = vi
 			.mocked(fetch)
@@ -84,9 +97,11 @@ describe('PiholeClient', () => {
 	it('rejects with the Pi-hole message on an incorrect password', async () => {
 		vi.stubGlobal(
 			'fetch',
-			routeFetch([
-				['/auth', () => jsonResponse(authInvalidPassword, 400)],
-			]),
+			routeFetch(
+				statsRoutes({
+					auth: () => jsonResponse(authInvalidPassword, 400),
+				}),
+			),
 		);
 		const client = new PiholeClient('1.1.1.1', 'wrong');
 
@@ -95,23 +110,47 @@ describe('PiholeClient', () => {
 		);
 	});
 
+	it('rejects with a generic message when the auth response has no session field', async () => {
+		vi.stubGlobal(
+			'fetch',
+			routeFetch(
+				statsRoutes({ auth: () => jsonResponse(authNoSession) }),
+			),
+		);
+		const client = new PiholeClient('1.1.1.1', 'testpw');
+
+		await expect(client.collectStats()).rejects.toThrow(
+			'no session in response',
+		);
+	});
+
+	it('rejects with the HTTP status when the auth response is not JSON', async () => {
+		vi.stubGlobal(
+			'fetch',
+			routeFetch(
+				statsRoutes({
+					auth: () =>
+						new Response('<html>not json</html>', { status: 502 }),
+				}),
+			),
+		);
+		const client = new PiholeClient('1.1.1.1', 'testpw');
+
+		await expect(client.collectStats()).rejects.toThrow('HTTP 502');
+	});
+
 	it('re-logs in and retries once when the session has expired', async () => {
 		let summaryCalls = 0;
 		vi.stubGlobal(
 			'fetch',
-			routeFetch([
-				['/auth', () => jsonResponse(authOkay)],
-				[
-					'/stats/summary',
-					() =>
+			routeFetch(
+				statsRoutes({
+					summary: () =>
 						++summaryCalls === 1
 							? jsonResponse(unauthorizedError, 401)
 							: jsonResponse(summaryData),
-				],
-				['blocked=false', () => jsonResponse(topQueriesData)],
-				['blocked=true', () => jsonResponse(topBlockedData)],
-				['recent_blocked', () => jsonResponse(recentBlockedData)],
-			]),
+				}),
+			),
 		);
 		const client = new PiholeClient('1.1.1.1', 'testpw');
 
@@ -122,10 +161,11 @@ describe('PiholeClient', () => {
 	it('rejects with status and body on any other HTTP error', async () => {
 		vi.stubGlobal(
 			'fetch',
-			routeFetch([
-				['/auth', () => jsonResponse(authOkay)],
-				['/api', () => jsonResponse({ error: 'boom' }, 500)],
-			]),
+			routeFetch(
+				statsRoutes({
+					summary: () => jsonResponse({ error: 'boom' }, 500),
+				}),
+			),
 		);
 		const client = new PiholeClient('1.1.1.1', 'testpw');
 
@@ -138,7 +178,6 @@ describe('PiholeClient', () => {
 			routeFetch([
 				['/auth', () => jsonResponse(authOkay)],
 				['/stats/summary', () => jsonResponse(summaryData)],
-				['blocked=false', () => jsonResponse(topDomainsEmpty)],
 				['blocked=true', () => jsonResponse(topDomainsEmpty)],
 				['recent_blocked', () => jsonResponse(recentBlockedEmpty)],
 			]),
@@ -147,7 +186,6 @@ describe('PiholeClient', () => {
 
 		const stats = await client.collectStats();
 
-		expect(stats.topQuery).toBe('Noch keine Anfragen');
 		expect(stats.topBlockedQuery).toBe('Noch nichts geblockt');
 		expect(stats.lastBlockedQuery).toBe('Noch nichts geblockt');
 	});

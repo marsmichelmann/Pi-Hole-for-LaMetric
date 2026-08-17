@@ -32,8 +32,5 @@
     "tabWidth": 4,
     "singleQuote": true,
     "useTabs": true
-  },
-  "allowScripts": {
-    "esbuild@0.28.2": true
   }
 }

@@ -15,6 +15,5 @@
     "topBlockedQuery": "i7621",
     "lastBlockedQuery": "i16805"
   },
-  "updateInterval": 60,
-  "debugMode": false
+  "updateInterval": 60
 }

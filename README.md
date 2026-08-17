@@ -39,7 +39,11 @@ Pi-hole
      Keys: `percentBlocked`, `adsBlockedToday`, `dnsQueriesToday`,
      `blockListSize`, `totalClientsSeen`, `topBlockedQuery`,
      `lastBlockedQuery`.
-4. `npm start` (or `node dist/main.js`, e.g. from a systemd unit)
+   - `updateInterval` - seconds a poll response is cached before Pi-hole is
+     asked again (also the TTL of the stale fallback on a failed refresh).
+4. `npm start` (or `node dist/main.js`, e.g. from a systemd unit - **not**
+   `npm start`/`npm run build` there: `typescript` is a devDependency, so a
+   production-only `npm ci --omit=dev` install has no compiler to run)
 5. On your phone, add the **My Data DIY** app to your LaMetric clock and
    configure its poll URL as `http://<this-host>:<Server.Port>/lametric`.
 

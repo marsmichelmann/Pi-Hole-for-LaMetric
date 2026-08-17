@@ -7,7 +7,7 @@ export const mapStatsToFrames = (
 	stats: PiholeStats,
 	icons: IconConfig = {},
 ): Frames => {
-	const frame = (key: string, body: Frame): Frame => {
+	const frame = (key: keyof PiholeStats, body: Frame): Frame => {
 		const icon = icons[key];
 		return icon ? { ...body, icon } : body;
 	};

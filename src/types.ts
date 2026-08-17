@@ -6,12 +6,9 @@ export interface AppConfig {
 	Server: {
 		Port: number;
 	};
-	Icons: IconConfig;
+	Icons?: IconConfig;
 	updateInterval: number;
-	debugMode: boolean;
 }
-
-export type IconConfig = Partial<Record<string, string>>;
 
 export interface PiholeStats {
 	blockListSize: number;
@@ -19,10 +16,13 @@ export interface PiholeStats {
 	adsBlockedToday: number;
 	percentBlocked: number;
 	totalClientsSeen: number;
-	topQuery: string;
 	topBlockedQuery: string;
 	lastBlockedQuery: string;
 }
+
+// One icon per stat we actually render (see frames.ts) - keyed by
+// PiholeStats so a typo in config.json's Icons object is a type error.
+export type IconConfig = Partial<Record<keyof PiholeStats, string>>;
 
 // Implemented by PiholeClient; kept separate so tests can supply a plain
 // object instead of an actual client (no cast needed - structural typing).

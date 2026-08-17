@@ -22,18 +22,22 @@ interface RecentBlockedResponse {
 	blocked: string[];
 }
 
-const NO_QUERIES_YET = 'Noch keine Anfragen';
 const NOTHING_BLOCKED_YET = 'Noch nichts geblockt';
 
 const formatTopDomain = (
 	domain: { domain: string; count: number } | undefined,
-	fallback: string,
-): string => (domain ? `${domain.domain} (${domain.count} Queries)` : fallback);
+): string =>
+	domain ? `${domain.domain} (${domain.count} Queries)` : NOTHING_BLOCKED_YET;
 
 export class PiholeClient {
 	// Pi-hole sessions expire after inactivity; on 401 the request is retried
 	// once after a fresh login (see request()).
 	private sid: string | null = null;
+
+	// Coalesces concurrent logins into one in-flight request, so two
+	// requests hitting an empty/expired session at the same time don't each
+	// open their own session (see ensureSession() and the 401 branch below).
+	private loginPromise: Promise<string> | null = null;
 
 	constructor(
 		private readonly ip: string,
@@ -48,17 +52,33 @@ export class PiholeClient {
 		});
 	}
 
-	private async login(): Promise<string> {
+	// Parses a response body as JSON, turning a non-JSON body (e.g. an HTML
+	// error page from a misconfigured host) into a message that still
+	// carries the HTTP status, instead of a raw, unhelpful SyntaxError.
+	private async parseJson<T>(res: Response, context: string): Promise<T> {
+		try {
+			return (await res.json()) as T;
+		} catch {
+			throw new Error(
+				`Pi-Hole ${context} returned a non-JSON response (HTTP ${res.status})`,
+			);
+		}
+	}
+
+	private login(): Promise<string> {
+		this.loginPromise ??= this.performLogin().finally(() => {
+			this.loginPromise = null;
+		});
+		return this.loginPromise;
+	}
+
+	private async performLogin(): Promise<string> {
 		const res = await this.fetchApi('/auth', {
 			method: 'POST',
 			headers: { 'Content-Type': 'application/json' },
 			body: JSON.stringify({ password: this.password }),
 		});
-		// res.json() is untyped by design (Response can't know the shape of
-		// what it fetched) - this cast is the one deliberate trust boundary:
-		// we assume our own Pi-hole instance replies with its documented
-		// schema, no runtime validation of external data.
-		const body = (await res.json()) as SessionResponse;
+		const body = await this.parseJson<SessionResponse>(res, 'login');
 		if (!body.session?.valid || body.session.sid === null) {
 			throw new Error(
 				`Pi-Hole login failed: ${body.session?.message ?? 'no session in response'}`,
@@ -80,8 +100,7 @@ export class PiholeClient {
 				headers: { sid: await this.login() },
 			});
 		}
-		// same trust boundary as login() above
-		const body = (await res.json()) as T;
+		const body = await this.parseJson<T>(res, `request to ${path}`);
 		if (!res.ok) {
 			throw new Error(
 				`Pi-Hole request to ${path} failed with HTTP ${res.status}: ${JSON.stringify(body)}`,
@@ -91,22 +110,19 @@ export class PiholeClient {
 	}
 
 	async collectStats(): Promise<PiholeStats> {
-		// Sequential login (if needed) first, then the four calls in parallel -
-		// otherwise each of them would race to create its own session.
+		// Sequential login (if needed) first, then the three calls in
+		// parallel - otherwise each of them would race to create its own
+		// session.
 		await this.ensureSession();
-		const [summary, topQuery, topBlocked, recentBlocked] =
-			await Promise.all([
-				this.request<SummaryResponse>('/stats/summary'),
-				this.request<TopDomainsResponse>(
-					'/stats/top_domains?blocked=false&count=1',
-				),
-				this.request<TopDomainsResponse>(
-					'/stats/top_domains?blocked=true&count=1',
-				),
-				this.request<RecentBlockedResponse>(
-					'/stats/recent_blocked?count=1',
-				),
-			]);
+		const [summary, topBlocked, recentBlocked] = await Promise.all([
+			this.request<SummaryResponse>('/stats/summary'),
+			this.request<TopDomainsResponse>(
+				'/stats/top_domains?blocked=true&count=1',
+			),
+			this.request<RecentBlockedResponse>(
+				'/stats/recent_blocked?count=1',
+			),
+		]);
 
 		return {
 			blockListSize: summary.gravity.domains_being_blocked,
@@ -114,11 +130,7 @@ export class PiholeClient {
 			adsBlockedToday: summary.queries.blocked,
 			percentBlocked: Math.round(summary.queries.percent_blocked),
 			totalClientsSeen: summary.clients.total,
-			topQuery: formatTopDomain(topQuery.domains[0], NO_QUERIES_YET),
-			topBlockedQuery: formatTopDomain(
-				topBlocked.domains[0],
-				NOTHING_BLOCKED_YET,
-			),
+			topBlockedQuery: formatTopDomain(topBlocked.domains[0]),
 			lastBlockedQuery: recentBlocked.blocked[0] ?? NOTHING_BLOCKED_YET,
 		};
 	}

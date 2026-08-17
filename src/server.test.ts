@@ -67,10 +67,30 @@ describe('createFrameProvider', () => {
 		expect(collectStats).toHaveBeenCalledTimes(2);
 	});
 
+	it('coalesces concurrent refreshes into a single collectStats call', async () => {
+		let resolveStats: (stats: typeof combinedStats) => void = () => {
+			throw new Error('resolveStats called before being assigned');
+		};
+		const statsPromise = new Promise<typeof combinedStats>((resolve) => {
+			resolveStats = resolve;
+		});
+		const collectStats = vi.fn(() => statsPromise);
+		const provider = createFrameProvider(fakeSource(collectStats), {
+			icons: {},
+			ttlSeconds: 60,
+		});
+
+		const first = provider();
+		const second = provider();
+		resolveStats(combinedStats);
+
+		await expect(first).resolves.toEqual(expectedFrames);
+		await expect(second).resolves.toEqual(expectedFrames);
+		expect(collectStats).toHaveBeenCalledTimes(1);
+	});
+
 	it('serves stale frames and reports the error when a refresh fails', async () => {
-		const collectStats = vi
-			.fn(() => Promise.resolve(combinedStats))
-			.mockImplementationOnce(() => Promise.resolve(combinedStats));
+		const collectStats = vi.fn(() => Promise.resolve(combinedStats));
 		const onError = vi.fn();
 		const provider = createFrameProvider(fakeSource(collectStats), {
 			icons: {},
@@ -167,6 +187,27 @@ describe('startServer', () => {
 
 		expect(res.status).toBe(200);
 		await expect(res.json()).resolves.toEqual(expectedFrames);
+		server.close();
+	});
+
+	it('logs and exits on a server error instead of crashing unhandled', async () => {
+		const exitSpy = vi
+			.spyOn(process, 'exit')
+			.mockImplementation(() => undefined as never);
+		const errorSpy = vi
+			.spyOn(console, 'error')
+			.mockImplementation(() => {});
+		const server = startServer(0, () => Promise.resolve(expectedFrames));
+		await new Promise((resolve) => server.once('listening', resolve));
+
+		server.emit('error', new Error('EADDRINUSE'));
+
+		expect(errorSpy).toHaveBeenCalledWith(
+			expect.stringContaining('EADDRINUSE'),
+		);
+		expect(exitSpy).toHaveBeenCalledWith(1);
+		exitSpy.mockRestore();
+		errorSpy.mockRestore();
 		server.close();
 	});
 });

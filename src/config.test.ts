@@ -19,7 +19,6 @@ const validConfig = {
 	Server: { Port: 3031 },
 	Icons: {},
 	updateInterval: 60,
-	debugMode: false,
 };
 
 describe('loadConfig', () => {
@@ -49,4 +48,37 @@ describe('loadConfig', () => {
 			'missing the "updateInterval" field',
 		);
 	});
+
+	it('rejects an empty PiHole.IP', () => {
+		const invalid = {
+			...validConfig,
+			PiHole: { ...validConfig.PiHole, IP: '' },
+		};
+
+		expect(() => loadConfig(writeTempConfig(invalid))).toThrow(
+			'PiHole.IP and PiHole.Password must be non-empty strings',
+		);
+	});
+
+	it('rejects an empty PiHole.Password', () => {
+		const invalid = {
+			...validConfig,
+			PiHole: { ...validConfig.PiHole, Password: '' },
+		};
+
+		expect(() => loadConfig(writeTempConfig(invalid))).toThrow(
+			'PiHole.IP and PiHole.Password must be non-empty strings',
+		);
+	});
+
+	it.each([0, -1, 65536, 1.5, 'abc'])(
+		'rejects an invalid Server.Port %s',
+		(port) => {
+			const invalid = { ...validConfig, Server: { Port: port } };
+
+			expect(() => loadConfig(writeTempConfig(invalid))).toThrow(
+				'Server.Port must be an integer between 1 and 65535',
+			);
+		},
+	);
 });
