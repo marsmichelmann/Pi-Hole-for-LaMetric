@@ -27,7 +27,7 @@ Pi-hole
 
 1. Requirements: Node.js ≥ 18, a running Pi-hole (Core v6+), and a LaMetric
    clock on the same network.
-2. `npm ci`
+2. `npm ci && npm run build` (TypeScript, compiled to `dist/`)
 3. `cp example.config.json config.json`, then fill in:
    - `PiHole.IP` - your Pi-hole's address.
    - `PiHole.Password` - your Pi-hole web UI password (or a dedicated
@@ -39,14 +39,19 @@ Pi-hole
      Keys: `percentBlocked`, `adsBlockedToday`, `dnsQueriesToday`,
      `blockListSize`, `totalClientsSeen`, `topBlockedQuery`,
      `lastBlockedQuery`.
-4. `npm start`
+4. `npm start` (or `node dist/main.js`, e.g. from a systemd unit)
 5. On your phone, add the **My Data DIY** app to your LaMetric clock and
    configure its poll URL as `http://<this-host>:<Server.Port>/lametric`.
 
 ## Development
 
+The source is TypeScript (`src/`, strict mode, ES modules, zero runtime
+dependencies - Node's built-in `fetch` and `http` are all it needs).
+
 ```bash
-npm test              # run the test suite
+npm run build         # compile to dist/
+npm test              # Vitest suite with enforced coverage thresholds
+npm run lint          # ESLint (typescript-eslint)
 npm run prettier-check
 ```
 

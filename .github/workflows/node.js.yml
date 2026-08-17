@@ -1,6 +1,5 @@
-# This workflow does a clean install of node dependencies and runs the test
-# suite across a matrix of Node.js versions.
-# For more information see: https://help.github.com/actions/language-and-framework-guides/using-nodejs-with-github-actions
+# Clean install, format/lint gates, TypeScript build, and test suite across
+# the supported Node.js versions.
 
 name: Node.js CI
 
@@ -34,14 +33,17 @@ jobs:
           node-version: ${{ matrix.node-version }}
           cache: npm
 
-      - name: Copy example.config.json to config.json
-        run: cp example.config.json config.json
-
       - name: Install dependencies
         run: npm ci
 
       - name: Format check
-        run: npx prettier --check *.js
+        run: npm run prettier-check
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Build
+        run: npm run build
 
       - name: Test
         run: npm test

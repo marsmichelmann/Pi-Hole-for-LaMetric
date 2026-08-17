@@ -1,41 +1,39 @@
 {
   "name": "pi-hole-for-lametric",
-  "version": "2.0.0",
+  "version": "3.0.0",
   "description": "Serves Pi-hole v6 stats as a LaMetric \"My Data DIY\" poll endpoint",
-  "main": "index.js",
+  "type": "module",
+  "main": "dist/main.js",
   "repository": "github:marsmichelmann/Pi-Hole-for-LaMetric",
   "engines": {
     "node": ">=18"
   },
   "scripts": {
-    "start": "node -e \"require('./index').main()\"",
-    "test": "jest",
-    "prettier": "prettier *.js",
-    "prettier-check": "prettier --check *.js"
+    "build": "tsc",
+    "start": "npm run build && node dist/main.js",
+    "test": "vitest run",
+    "lint": "eslint src",
+    "prettier": "prettier --write \"src/**/*.ts\"",
+    "prettier-check": "prettier --check \"src/**/*.ts\""
   },
   "author": "Markus Michel",
   "license": "GPL-3.0-or-later",
-  "dependencies": {
-    "node-fetch": "^2.6.7"
-  },
   "devDependencies": {
-    "babel-jest": "27.4.6",
-    "babel-plugin-rewire": "1.2.0",
-    "fetch-mock-jest": "1.5.1",
-    "jest": "27.4.7",
-    "jest-cli": "27.4.7",
-    "prettier": "2.5.1"
-  },
-  "jest": {
-    "collectCoverage": true,
-    "coverageReporters": [
-      "text"
-    ]
+    "@types/node": "^18.19.0",
+    "@vitest/coverage-v8": "^3.2.4",
+    "eslint": "^9.33.0",
+    "prettier": "^3.6.2",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.39.0",
+    "vitest": "^3.2.4"
   },
   "prettier": {
     "trailingComma": "all",
     "tabWidth": 4,
     "singleQuote": true,
     "useTabs": true
+  },
+  "allowScripts": {
+    "esbuild@0.28.2": true
   }
 }
