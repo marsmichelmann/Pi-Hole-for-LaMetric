@@ -1,4 +1,48 @@
+import { request as httpRequest } from 'node:http';
+
 import type { PiholeStats } from './types.js';
+
+interface HttpResult {
+	status: number;
+	body: string;
+}
+
+// Deliberately plain node:http instead of the built-in fetch: fetch is
+// backed by undici, whose connection pool and spec machinery cost ~15 MB of
+// extra RSS on the Pi just for being initialized - measured, not guessed.
+// Our needs (tiny JSON requests) don't justify that.
+const httpJson = (
+	url: string,
+	options: {
+		method?: string;
+		headers?: Record<string, string>;
+		body?: string;
+		timeoutMs: number;
+	},
+): Promise<HttpResult> =>
+	new Promise((resolve, reject) => {
+		const req = httpRequest(
+			url,
+			{
+				method: options.method ?? 'GET',
+				headers: options.headers,
+				timeout: options.timeoutMs,
+			},
+			(res) => {
+				let data = '';
+				res.setEncoding('utf8');
+				res.on('data', (chunk: string) => (data += chunk));
+				res.on('end', () =>
+					resolve({ status: res.statusCode ?? 0, body: data }),
+				);
+			},
+		);
+		req.on('timeout', () => {
+			req.destroy(new Error(`request to ${url} timed out`));
+		});
+		req.on('error', reject);
+		req.end(options.body);
+	});
 
 interface SessionResponse {
 	session?: {
@@ -45,19 +89,26 @@ export class PiholeClient {
 		private readonly timeoutMs = 10_000,
 	) {}
 
-	private fetchApi(path: string, init?: RequestInit): Promise<Response> {
-		return fetch(`http://${this.ip}/api${path}`, {
-			...init,
-			signal: AbortSignal.timeout(this.timeoutMs),
+	private fetchApi(
+		path: string,
+		options: {
+			method?: string;
+			headers?: Record<string, string>;
+			body?: string;
+		} = {},
+	): Promise<HttpResult> {
+		return httpJson(`http://${this.ip}/api${path}`, {
+			...options,
+			timeoutMs: this.timeoutMs,
 		});
 	}
 
 	// Parses a response body as JSON, turning a non-JSON body (e.g. an HTML
 	// error page from a misconfigured host) into a message that still
 	// carries the HTTP status, instead of a raw, unhelpful SyntaxError.
-	private async parseJson<T>(res: Response, context: string): Promise<T> {
+	private parseJson<T>(res: HttpResult, context: string): T {
 		try {
-			return (await res.json()) as T;
+			return JSON.parse(res.body) as T;
 		} catch {
 			throw new Error(
 				`Pi-Hole ${context} returned a non-JSON response (HTTP ${res.status})`,
@@ -78,7 +129,7 @@ export class PiholeClient {
 			headers: { 'Content-Type': 'application/json' },
 			body: JSON.stringify({ password: this.password }),
 		});
-		const body = await this.parseJson<SessionResponse>(res, 'login');
+		const body = this.parseJson<SessionResponse>(res, 'login');
 		if (!body.session?.valid || body.session.sid === null) {
 			throw new Error(
 				`Pi-Hole login failed: ${body.session?.message ?? 'no session in response'}`,
@@ -100,8 +151,8 @@ export class PiholeClient {
 				headers: { sid: await this.login() },
 			});
 		}
-		const body = await this.parseJson<T>(res, `request to ${path}`);
-		if (!res.ok) {
+		const body = this.parseJson<T>(res, `request to ${path}`);
+		if (res.status < 200 || res.status >= 300) {
 			throw new Error(
 				`Pi-Hole request to ${path} failed with HTTP ${res.status}: ${JSON.stringify(body)}`,
 			);

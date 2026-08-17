@@ -1,4 +1,5 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { createServer, type Server } from 'node:http';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { PiholeClient } from './pihole.js';
 import {
@@ -14,177 +15,163 @@ import {
 	unauthorizedError,
 } from './mockdata.js';
 
-const jsonResponse = (body: unknown, status = 200): Response =>
-	new Response(JSON.stringify(body), {
-		status,
-		headers: { 'Content-Type': 'application/json' },
-	});
+interface Route {
+	status?: number;
+	body: unknown;
+	raw?: boolean;
+}
 
-// routes fetch calls by URL substring; unmatched URLs fail the test
-const routeFetch = (
-	routes: [match: string, respond: () => Response][],
-): ReturnType<typeof vi.fn> =>
-	vi.fn((input: string | URL | Request) => {
-		const url = String(input);
-		const route = routes.find(([match]) => url.includes(match));
-		if (!route) {
-			throw new Error(`unmatched fetch: ${url}`);
-		}
-		return Promise.resolve(route[1]());
-	});
+// A real local HTTP server standing in for Pi-hole: routes are matched by
+// URL substring and can be swapped per test; every request is recorded.
+let routes: [match: string, respond: () => Route][] = [];
+let requests: { url: string; headers: Record<string, unknown> }[] = [];
+let server: Server;
+let piholeAddress: string;
 
-const statsRoutes = (
-	overrides: Partial<Record<'auth' | 'summary', () => Response>> = {},
-): [string, () => Response][] => [
-	['/auth', overrides.auth ?? (() => jsonResponse(authOkay))],
-	['/stats/summary', overrides.summary ?? (() => jsonResponse(summaryData))],
-	['blocked=true', () => jsonResponse(topBlockedData)],
-	['recent_blocked', () => jsonResponse(recentBlockedData)],
+const defaultRoutes = (
+	overrides: Partial<Record<'auth' | 'summary', () => Route>> = {},
+): [string, () => Route][] => [
+	['/auth', overrides.auth ?? (() => ({ body: authOkay }))],
+	['/stats/summary', overrides.summary ?? (() => ({ body: summaryData }))],
+	['blocked=true', () => ({ body: topBlockedData })],
+	['recent_blocked', () => ({ body: recentBlockedData })],
 ];
 
+const client = () => new PiholeClient(piholeAddress, 'testpw');
+
 describe('PiholeClient', () => {
-	beforeEach(() => {
-		vi.stubGlobal('fetch', routeFetch(statsRoutes()));
+	beforeEach(async () => {
+		routes = defaultRoutes();
+		requests = [];
+		server = createServer((req, res) => {
+			requests.push({ url: req.url ?? '', headers: req.headers });
+			const route = routes.find(([match]) => req.url?.includes(match));
+			if (!route) {
+				res.writeHead(500).end('unmatched route');
+				return;
+			}
+			const { status = 200, body, raw = false } = route[1]();
+			res.writeHead(status, {
+				'Content-Type': raw ? 'text/html' : 'application/json',
+			});
+			res.end(raw ? String(body) : JSON.stringify(body));
+		});
+		await new Promise<void>((resolve) => server.listen(0, resolve));
+		const address = server.address();
+		if (address === null || typeof address === 'string') {
+			throw new Error('expected a bound port');
+		}
+		piholeAddress = `127.0.0.1:${address.port}`;
 	});
 
 	afterEach(() => {
-		vi.unstubAllGlobals();
+		server.close();
 	});
 
 	it('collects and combines the three stats calls', async () => {
-		const client = new PiholeClient('1.1.1.1', 'testpw');
-
-		await expect(client.collectStats()).resolves.toEqual(combinedStats);
+		await expect(client().collectStats()).resolves.toEqual(combinedStats);
 	});
 
 	it('logs in once and reuses the session across collections', async () => {
-		const client = new PiholeClient('1.1.1.1', 'testpw');
+		const c = client();
 
-		await client.collectStats();
-		await client.collectStats();
+		await c.collectStats();
+		await c.collectStats();
 
-		const authCalls = vi
-			.mocked(fetch)
-			.mock.calls.filter(([url]) => String(url).includes('/auth'));
+		const authCalls = requests.filter((r) => r.url.includes('/auth'));
 		expect(authCalls).toHaveLength(1);
 	});
 
 	it('coalesces concurrent logins into a single request', async () => {
-		const client = new PiholeClient('1.1.1.1', 'testpw');
+		const c = client();
 
 		// no sid cached yet - both calls race to log in
-		await Promise.all([client.collectStats(), client.collectStats()]);
+		await Promise.all([c.collectStats(), c.collectStats()]);
 
-		const authCalls = vi
-			.mocked(fetch)
-			.mock.calls.filter(([url]) => String(url).includes('/auth'));
+		const authCalls = requests.filter((r) => r.url.includes('/auth'));
 		expect(authCalls).toHaveLength(1);
 	});
 
 	it('sends the session ID as sid header', async () => {
-		const client = new PiholeClient('1.1.1.1', 'testpw');
+		await client().collectStats();
 
-		await client.collectStats();
-
-		const summaryCall = vi
-			.mocked(fetch)
-			.mock.calls.find(([url]) => String(url).includes('/stats/summary'));
-		expect(summaryCall?.[1]?.headers).toEqual({
-			sid: authOkay.session.sid,
-		});
+		const summaryCall = requests.find((r) =>
+			r.url.includes('/stats/summary'),
+		);
+		expect(summaryCall?.headers.sid).toBe(authOkay.session.sid);
 	});
 
 	it('rejects with the Pi-hole message on an incorrect password', async () => {
-		vi.stubGlobal(
-			'fetch',
-			routeFetch(
-				statsRoutes({
-					auth: () => jsonResponse(authInvalidPassword, 400),
-				}),
-			),
-		);
-		const client = new PiholeClient('1.1.1.1', 'wrong');
+		routes = defaultRoutes({
+			auth: () => ({ status: 400, body: authInvalidPassword }),
+		});
 
-		await expect(client.collectStats()).rejects.toThrow(
+		await expect(client().collectStats()).rejects.toThrow(
 			'password incorrect',
 		);
 	});
 
 	it('rejects with a generic message when the auth response has no session field', async () => {
-		vi.stubGlobal(
-			'fetch',
-			routeFetch(
-				statsRoutes({ auth: () => jsonResponse(authNoSession) }),
-			),
-		);
-		const client = new PiholeClient('1.1.1.1', 'testpw');
+		routes = defaultRoutes({ auth: () => ({ body: authNoSession }) });
 
-		await expect(client.collectStats()).rejects.toThrow(
+		await expect(client().collectStats()).rejects.toThrow(
 			'no session in response',
 		);
 	});
 
 	it('rejects with the HTTP status when the auth response is not JSON', async () => {
-		vi.stubGlobal(
-			'fetch',
-			routeFetch(
-				statsRoutes({
-					auth: () =>
-						new Response('<html>not json</html>', { status: 502 }),
-				}),
-			),
-		);
-		const client = new PiholeClient('1.1.1.1', 'testpw');
+		routes = defaultRoutes({
+			auth: () => ({
+				status: 502,
+				body: '<html>not json</html>',
+				raw: true,
+			}),
+		});
 
-		await expect(client.collectStats()).rejects.toThrow('HTTP 502');
+		await expect(client().collectStats()).rejects.toThrow('HTTP 502');
 	});
 
 	it('re-logs in and retries once when the session has expired', async () => {
 		let summaryCalls = 0;
-		vi.stubGlobal(
-			'fetch',
-			routeFetch(
-				statsRoutes({
-					summary: () =>
-						++summaryCalls === 1
-							? jsonResponse(unauthorizedError, 401)
-							: jsonResponse(summaryData),
-				}),
-			),
-		);
-		const client = new PiholeClient('1.1.1.1', 'testpw');
+		routes = defaultRoutes({
+			summary: () =>
+				++summaryCalls === 1
+					? { status: 401, body: unauthorizedError }
+					: { body: summaryData },
+		});
 
-		await expect(client.collectStats()).resolves.toEqual(combinedStats);
+		await expect(client().collectStats()).resolves.toEqual(combinedStats);
 		expect(summaryCalls).toBe(2);
 	});
 
 	it('rejects with status and body on any other HTTP error', async () => {
-		vi.stubGlobal(
-			'fetch',
-			routeFetch(
-				statsRoutes({
-					summary: () => jsonResponse({ error: 'boom' }, 500),
-				}),
-			),
-		);
-		const client = new PiholeClient('1.1.1.1', 'testpw');
+		routes = defaultRoutes({
+			summary: () => ({ status: 500, body: { error: 'boom' } }),
+		});
 
-		await expect(client.collectStats()).rejects.toThrow('HTTP 500');
+		await expect(client().collectStats()).rejects.toThrow('HTTP 500');
+	});
+
+	it('rejects with a timeout error when Pi-hole does not respond in time', async () => {
+		routes = defaultRoutes();
+		server.removeAllListeners('request');
+		server.on('request', () => {
+			// never respond - the client's timeout has to fire
+		});
+		const c = new PiholeClient(piholeAddress, 'testpw', 100);
+
+		await expect(c.collectStats()).rejects.toThrow('timed out');
 	});
 
 	it('falls back to placeholder text when no domain data exists yet', async () => {
-		vi.stubGlobal(
-			'fetch',
-			routeFetch([
-				['/auth', () => jsonResponse(authOkay)],
-				['/stats/summary', () => jsonResponse(summaryData)],
-				['blocked=true', () => jsonResponse(topDomainsEmpty)],
-				['recent_blocked', () => jsonResponse(recentBlockedEmpty)],
-			]),
-		);
-		const client = new PiholeClient('1.1.1.1', 'testpw');
+		routes = [
+			['/auth', () => ({ body: authOkay })],
+			['/stats/summary', () => ({ body: summaryData })],
+			['blocked=true', () => ({ body: topDomainsEmpty })],
+			['recent_blocked', () => ({ body: recentBlockedEmpty })],
+		];
 
-		const stats = await client.collectStats();
+		const stats = await client().collectStats();
 
 		expect(stats.topBlockedQuery).toBe('Noch nichts geblockt');
 		expect(stats.lastBlockedQuery).toBe('Noch nichts geblockt');
