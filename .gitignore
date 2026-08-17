@@ -60,6 +60,9 @@ typings/
 # next.js build output
 .next
 
+# TypeScript build output
+dist/
+
 # config file
 config.json
 sh.exe.stackdump
