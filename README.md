@@ -13,15 +13,12 @@ an approximation of the original (now discontinued upstream)
 [Pi-Hole Status](https://apps.lametric.com/apps/pi-hole_status/6943) app,
 built on the generic My Data DIY frame format rather than a bespoke app.
 
-```
-LaMetric clock (My Data DIY, polls periodically)
-        │  GET http://<this-host>:<Server.Port>/lametric
-        ▼
-this program (Node.js)
-        │  Pi-hole v6 REST API, session login
-        ▼
-Pi-hole
-```
+## How it works
+
+![Informationsfluss von der LaMetric-Uhr über diesen Server zu Pi-hole: die Uhr pollt periodisch /lametric, ein TTL-Cache beantwortet die meisten Polls ohne Pi-hole zu kontaktieren, bei einem Cache-Miss holt der Server eine Pi-hole-Session und fragt drei Stats-Endpunkte parallel ab, und ein Fehlerpfad liefert veraltete Frames oder einen 502 zurück.](docs/dataflow.png)
+
+Editable source: [`docs/dataflow.excalidraw`](docs/dataflow.excalidraw) (open at
+[excalidraw.com](https://excalidraw.com)).
 
 ## Setup
 
