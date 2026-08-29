@@ -50,7 +50,7 @@ Pi-hole
 ## Development
 
 The source is TypeScript (`src/`, strict mode, ES modules, zero runtime
-dependencies - Node's built-in `fetch` and `http` are all it needs).
+dependencies - Node's built-in `node:http` is all it needs).
 
 ```bash
 npm run build         # compile to dist/
