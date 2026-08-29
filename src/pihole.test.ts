@@ -128,7 +128,12 @@ describe('PiholeClient', () => {
 			}),
 		});
 
-		await expect(client().collectStats()).rejects.toThrow('HTTP 502');
+		// The message carries the status for the operator; the SyntaxError
+		// behind it stays reachable via `cause`.
+		await expect(client().collectStats()).rejects.toMatchObject({
+			message: expect.stringContaining('HTTP 502'),
+			cause: expect.any(SyntaxError),
+		});
 	});
 
 	it('re-logs in and retries once when the session has expired', async () => {

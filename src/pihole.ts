@@ -105,13 +105,16 @@ export class PiholeClient {
 
 	// Parses a response body as JSON, turning a non-JSON body (e.g. an HTML
 	// error page from a misconfigured host) into a message that still
-	// carries the HTTP status, instead of a raw, unhelpful SyntaxError.
+	// carries the HTTP status, instead of a raw, unhelpful SyntaxError. The
+	// SyntaxError itself stays attached as `cause`, so the journal still
+	// shows where the body went wrong without that noise in the message.
 	private parseJson<T>(res: HttpResult, context: string): T {
 		try {
 			return JSON.parse(res.body) as T;
-		} catch {
+		} catch (err) {
 			throw new Error(
 				`Pi-Hole ${context} returned a non-JSON response (HTTP ${res.status})`,
+				{ cause: err },
 			);
 		}
 	}
