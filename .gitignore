@@ -69,3 +69,7 @@ sh.exe.stackdump
 
 # IntelliJ
 .idea
+
+# Local Claude/Codex settings
+.claude/settings.local.json
+.codex/config.toml
