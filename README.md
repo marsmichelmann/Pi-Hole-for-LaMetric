@@ -44,6 +44,30 @@ Editable source: [`docs/dataflow.excalidraw`](docs/dataflow.excalidraw) (open at
 5. On your phone, add the **My Data DIY** app to your LaMetric clock and
    configure its poll URL as `http://<this-host>:<Server.Port>/lametric`.
 
+## Deploying an update
+
+On the Pi, this repo is a git clone kept current by a shared `update.sh` in
+its home directory (not part of this repository, alongside a few unrelated
+projects on the same device). The manual equivalent, run from the clone:
+
+    git pull --ff-only
+    npm ci && npm run build
+    sudo systemctl restart lametric
+
+**`npm ci`, not `npm install`.** `npm install` rewrites the committed
+`package-lock.json` in the installed npm version's own dialect (different
+sorting, added/removed fields), leaving it locally modified even though
+nothing in `package.json` changed. That once blocked the automated update
+outright: the script refuses to pull a repo with local changes to tracked
+files - it cannot distinguish harmless lockfile drift from a real conflict,
+so it plays safe and skips the pull. `npm ci` installs exactly what the
+lockfile says and never rewrites it.
+
+**The restart is not optional.** The systemd unit (`lametric.service`) sets
+`Restart=always`, which restarts the process after a crash, not after new
+code lands - `dist/` is gitignored, built separately from the pull, and the
+running process keeps the code it started with until something restarts it.
+
 ## Development
 
 The source is TypeScript (`src/`, strict mode, ES modules, zero runtime
